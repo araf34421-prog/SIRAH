@@ -16,17 +16,18 @@ $nama_bulan = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => '
 // Hitung total hari kerja di bulan tersebut (asumsi 26 hari)
 $total_hari_kerja = 26;
 
-// Query lengkap: hafalan + kehadiran
+// Query lengkap: hafalan + kehadiran/absensi
 $sql_santri = "SELECT s.id, s.nama, s.nis,
               COALESCE(SUM(CASE WHEN h.jenis = 'ziyadah' THEN h.jumlah_ayat ELSE 0 END), 0) as total_ayat,
               COALESCE(SUM(CASE WHEN h.jenis = 'murajaah' THEN 1 ELSE 0 END), 0) as total_murajaah,
               COALESCE(SUM(CASE WHEN h.jenis = 'tasmi' THEN 1 ELSE 0 END), 0) as total_tasmi,
-              COALESCE(SUM(CASE WHEN k.status = 'H' THEN 1 ELSE 0 END), 0) as hadir,
-              COALESCE(SUM(CASE WHEN k.status = 'S' THEN 1 ELSE 0 END), 0) as sakit,
-              COALESCE(SUM(CASE WHEN k.status = 'I' THEN 1 ELSE 0 END), 0) as izin,
-              COALESCE(SUM(CASE WHEN k.status = 'A' THEN 1 ELSE 0 END), 0) as alpa
+              COALESCE(SUM(CASE WHEN a.status = 'Hadir' OR k.status = 'H' THEN 1 ELSE 0 END), 0) as hadir,
+              COALESCE(SUM(CASE WHEN a.status = 'Sakit' OR k.status = 'S' THEN 1 ELSE 0 END), 0) as sakit,
+              COALESCE(SUM(CASE WHEN a.status = 'Izin' OR k.status = 'I' THEN 1 ELSE 0 END), 0) as izin,
+              COALESCE(SUM(CASE WHEN a.status = 'Alfa' OR k.status = 'A' THEN 1 ELSE 0 END), 0) as alpa
               FROM santri s 
               LEFT JOIN hafalan h ON s.id = h.id_santri AND DATE_FORMAT(h.tanggal, '%Y-%m') = '$periode'
+              LEFT JOIN absensi a ON s.id = a.id_santri AND DATE_FORMAT(a.tanggal, '%Y-%m') = '$periode'
               LEFT JOIN kehadiran k ON s.id = k.id_santri AND DATE_FORMAT(k.tanggal, '%Y-%m') = '$periode'
               GROUP BY s.id 
               ORDER BY s.nama ASC";
