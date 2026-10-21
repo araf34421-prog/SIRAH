@@ -2,157 +2,146 @@
 session_start();
 require 'config/database.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['ustadz', 'pimpinan'])) {
-    header("Location: login.php");
+// 🔒 HANYA USTADZ YANG BAKS AKSES (Pimpinan dilempar ke dashboard)
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'ustadz') {
+    header("Location: dashboard.php");
     exit;
 }
 
-$query = "SELECT santri.*, users.username as username_ortu 
-          FROM santri 
-          LEFT JOIN users ON santri.id_user_ortu = users.id 
-          ORDER BY santri.id DESC";
+$query = "SELECT santri.*, users.username as username_ortu FROM santri LEFT JOIN users ON santri.id_user_ortu = users.id ORDER BY santri.id DESC";
 $result = mysqli_query($conn, $query);
-
-if (!$result) {
-    die("Error query: " . mysqli_error($conn));
-}
-
 $santri_list = mysqli_fetch_all($result, MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kelola Santri - Surau Tahfizh Firdaus</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-slate-50 font-sans text-slate-800">
 
-    <!-- PANGGIL SIDEBAR -->
     <?php include 'includes/sidebar.php'; ?>
 
-    <!-- KONTEN UTAMA (Geser ke kanan) -->
     <div class="ml-64 p-8">
-        
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800"> Kelola Santri</h2>
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="graduation-cap" class="w-7 h-7 text-indigo-600"></i> Kelola Santri
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">Tambah data santri dan buat akun otomatis untuk orang tua.</p>
+            </div>
         </div>
 
-        <!-- Pesan Sukses -->
         <?php if (isset($_SESSION['success'])): ?>
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6 text-sm">
-                <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+            <div class="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 p-4 rounded mb-6 text-sm flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> <?= $_SESSION['success']; unset($_SESSION['success']); ?>
             </div>
         <?php endif; ?>
 
-        <!-- Pesan Error -->
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 text-sm">
-                <?= $_SESSION['error']; unset($_SESSION['error']); ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- FORM TAMBAH SANTRI -->
-        <div class="bg-white rounded-xl shadow p-6 mb-6">
-            <h3 class="text-lg font-bold text-emerald-700 mb-4"> Tambah Santri Baru (Sekaligus Buat Akun Ortu)</h3>
-            
-            <form action="proses_tambah_santri.php" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4" autocomplete="off">
+        <!-- Form Tambah Santri -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
+            <h3 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <i data-lucide="user-plus" class="w-5 h-5 text-indigo-600"></i> Tambah Santri Baru
+            </h3>
+            <form action="proses_tambah_santri.php" method="POST" class="space-y-6" autocomplete="off">
                 
-                <!-- Header Data Santri -->
-                <div class="md:col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <h4 class="font-semibold text-gray-700 text-sm"> Data Santri</h4>
+                <!-- Data Santri -->
+                <div>
+                    <h4 class="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Data Santri</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Nama Lengkap</label>
+                            <input type="text" name="nama_santri" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">NIS</label>
+                            <input type="text" name="nis" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Jenis Kelamin</label>
+                            <select name="jenis_kelamin" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="L">Laki-laki</option>
+                                <option value="P">Perempuan</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Tanggal Lahir</label>
+                            <input type="date" name="tanggal_lahir" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Alamat</label>
+                            <textarea name="alamat" rows="2" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Nama Lengkap Santri</label>
-                    <input type="text" name="nama_santri" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">NIS</label>
-                    <input type="text" name="nis" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Jenis Kelamin</label>
-                    <select name="jenis_kelamin" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
-                        <option value="L">Laki-laki</option>
-                        <option value="P">Perempuan</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Tanggal Lahir</label>
-                    <input type="date" name="tanggal_lahir" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Alamat</label>
-                    <textarea name="alamat" rows="2" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></textarea>
+                <div class="border-t border-slate-200 pt-6">
+                    <h4 class="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Data Orang Tua (Untuk Login)</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Nama Orang Tua</label>
+                            <input type="text" name="nama_ortu" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">No. HP</label>
+                            <input type="text" name="no_hp_ortu" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Username Ortu</label>
+                            <input type="text" name="username_ortu" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Cth: ortu_ahmad">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Password Ortu</label>
+                            <input type="text" name="password_ortu" value="ortu123" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Header Data Ortu -->
-                <div class="md:col-span-2 bg-purple-50 p-3 rounded-lg border border-purple-200 mt-2">
-                    <h4 class="font-semibold text-purple-700 text-sm"> Data & Akun Login Orang Tua</h4>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Nama Orang Tua</label>
-                    <input type="text" name="nama_ortu" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">No. HP Orang Tua</label>
-                    <input type="text" name="no_hp_ortu" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Username untuk Ortu</label>
-                    <input type="text" name="username_ortu" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Cth: ortu_ahmad">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Password untuk Ortu</label>
-                    <input type="text" name="password_ortu" value="ortu123" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
-                </div>
-
-                <div class="md:col-span-2 mt-2">
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-6 rounded-lg transition text-sm">
-                        💾 Simpan Data Santri & Buat Akun Ortu
+                <div class="flex justify-end pt-4">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Data Santri
                     </button>
                 </div>
             </form>
         </div>
 
-        <!-- TABEL DAFTAR SANTRI -->
-        <div class="bg-white rounded-xl shadow p-6">
-            <h3 class="text-lg font-bold text-emerald-700 mb-4"> Daftar Santri</h3>
+        <!-- Tabel Santri -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-200">
+                <h3 class="text-lg font-semibold text-slate-900">Daftar Santri Binaan</h3>
+            </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-700 uppercase text-xs">
-                            <th class="py-3 px-4">No</th>
-                            <th class="py-3 px-4">Nama Santri</th>
-                            <th class="py-3 px-4">NIS</th>
-                            <th class="py-3 px-4">JK</th>
-                            <th class="py-3 px-4">Nama Ortu</th>
-                            <th class="py-3 px-4">Username Ortu</th>
-                            <th class="py-3 px-4 text-center">Aksi</th>
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                        <tr>
+                            <th class="py-3 px-6 font-medium">No</th>
+                            <th class="py-3 px-6 font-medium">Nama Santri</th>
+                            <th class="py-3 px-6 font-medium">NIS</th>
+                            <th class="py-3 px-6 font-medium">JK</th>
+                            <th class="py-3 px-6 font-medium">Nama Ortu</th>
+                            <th class="py-3 px-6 font-medium">Username Ortu</th>
+                            <th class="py-3 px-6 font-medium text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="text-gray-600 text-sm">
+                    <tbody class="text-sm text-slate-600 divide-y divide-slate-100">
                         <?php if (empty($santri_list)): ?>
-                            <tr>
-                                <td colspan="7" class="py-4 text-center text-gray-500">Belum ada data santri.</td>
-                            </tr>
+                            <tr><td colspan="7" class="py-8 text-center text-slate-400">Belum ada data santri.</td></tr>
                         <?php else: ?>
-                            <?php foreach ($santri_list as $index => $santri): ?>
-                                <tr class="border-b hover:bg-gray-50">
-                                    <td class="py-3 px-4"><?= $index + 1 ?></td>
-                                    <td class="py-3 px-4 font-medium"><?= htmlspecialchars($santri['nama']) ?></td>
-                                    <td class="py-3 px-4"><?= htmlspecialchars($santri['nis']) ?></td>
-                                    <td class="py-3 px-4"><?= $santri['jenis_kelamin'] ?></td>
-                                    <td class="py-3 px-4"><?= htmlspecialchars($santri['nama_ortu']) ?></td>
-                                    <td class="py-3 px-4 text-xs"><?= htmlspecialchars($santri['username_ortu'] ?? '-') ?></td>
-                                    <td class="py-3 px-4 text-center">
-                                        <a href="proses_hapus_santri.php?id=<?= $santri['id'] ?>" 
-                                           onclick="return confirm('Yakin ingin menghapus santri ini? Akun orang tuanya juga akan ikut terhapus.')"
-                                           class="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-xs transition">
-                                           ️ Hapus
+                            <?php foreach ($santri_list as $i => $s): ?>
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="py-4 px-6"><?= $i + 1 ?></td>
+                                    <td class="py-4 px-6 font-medium text-slate-900"><?= htmlspecialchars($s['nama']) ?></td>
+                                    <td class="py-4 px-6"><?= htmlspecialchars($s['nis']) ?></td>
+                                    <td class="py-4 px-6"><?= $s['jenis_kelamin'] ?></td>
+                                    <td class="py-4 px-6"><?= htmlspecialchars($s['nama_ortu']) ?></td>
+                                    <td class="py-4 px-6 text-xs"><?= htmlspecialchars($s['username_ortu'] ?? '-') ?></td>
+                                    <td class="py-4 px-6 text-center">
+                                        <a href="proses_hapus_santri.php?id=<?= $s['id'] ?>" onclick="return confirm('Hapus santri ini?')" class="text-red-600 hover:text-red-700 flex items-center justify-center gap-1 mx-auto w-fit">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i> Hapus
                                         </a>
                                     </td>
                                 </tr>
@@ -162,8 +151,7 @@ $santri_list = mysqli_fetch_all($result, MYSQLI_ASSOC);
                 </table>
             </div>
         </div>
-
-    </div> <!-- End Konten Utama -->
-
+    </div>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

@@ -1,134 +1,90 @@
 <?php
 session_start();
 require 'config/database.php';
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['ustadz', 'pimpinan'])) { header("Location: login.php"); exit; }
 
-//  Keamanan: Hanya Ustadz dan Pimpinan
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['ustadz', 'pimpinan'])) {
-    header("Location: login.php");
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id_santri = (int) $_POST['id_santri'];
+    $target_ayat = (int) $_POST['target_ayat'];
+    $target_surat = mysqli_real_escape_string($conn, $_POST['target_surat']);
+    $total_ayat = (int) $_POST['total_ayat'];
+    $tgl_mulai = $_POST['tanggal_mulai'];
+    $ket = mysqli_real_escape_string($conn, $_POST['keterangan']);
+    
+    // Hitung estimasi selesai
+    $hari_dibutuhkan = ceil($total_ayat / $target_ayat);
+    $tgl_selesai = date('Y-m-d', strtotime($tgl_mulai . " + $hari_dibutuhkan days"));
+
+    $cek = mysqli_query($conn, "SELECT id FROM target_hafalan WHERE id_santri = $id_santri");
+    if (mysqli_num_rows($cek) > 0) {
+        mysqli_query($conn, "UPDATE target_hafalan SET target_ayat_per_hari=$target_ayat, target_surat='$target_surat', total_ayat_target=$total_ayat, tanggal_mulai='$tgl_mulai', tanggal_estimasi_selesai='$tgl_selesai', keterangan='$ket' WHERE id_santri = $id_santri");
+    } else {
+        mysqli_query($conn, "INSERT INTO target_hafalan (id_santri, target_ayat_per_hari, target_surat, total_ayat_target, tanggal_mulai, tanggal_estimasi_selesai, keterangan) VALUES ($id_santri, $target_ayat, '$target_surat', $total_ayat, '$tgl_mulai', '$tgl_selesai', '$ket')");
+    }
+    $_SESSION['success'] = "Target hafalan berhasil diperbarui!";
+    header("Location: target_santri.php"); exit;
 }
 
-// 1. Ambil semua data santri
-$santri_query = "SELECT id, nama FROM santri ORDER BY nama ASC";
-$santri_result = mysqli_query($conn, $santri_query);
-$santri_list = mysqli_fetch_all($santri_result, MYSQLI_ASSOC);
-
-// 2. Ambil data target hafalan TERAKHIR untuk setiap santri
-// Kita gabungkan (JOIN) agar bisa ditampilkan di tabel
-$target_query = "SELECT s.id, s.nama, t.target_ayat_per_hari, t.keterangan, t.tanggal_mulai 
-                 FROM santri s 
-                 LEFT JOIN target_hafalan t ON s.id = t.id_santri 
-                 ORDER BY s.nama ASC";
-$target_result = mysqli_query($conn, $target_query);
-$target_list = mysqli_fetch_all($target_result, MYSQLI_ASSOC);
+$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama FROM santri ORDER BY nama ASC"), MYSQLI_ASSOC);
+$target_list = mysqli_fetch_all(mysqli_query($conn, "SELECT t.*, s.nama FROM target_hafalan t JOIN santri s ON t.id_santri = s.id ORDER BY s.nama ASC"), MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Target Hafalan Santri - Surau Tahfizh Firdaus</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 font-sans">
+<head><meta charset="UTF-8"><title>Target Hafalan</title><script src="https://cdn.tailwindcss.com"></script><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>body{font-family:'Inter',sans-serif;}</style></head>
+<body class="bg-slate-50 text-slate-800">
+<?php include 'includes/sidebar.php'; ?>
+<div class="ml-64 p-8">
+    <h1 class="text-2xl font-bold text-slate-900 mb-6">Perencanaan Target Hafalan Individual</h1>
+    <?php if (isset($_SESSION['success'])): ?><div class="bg-green-100 text-green-700 p-3 rounded mb-4 text-sm"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div><?php endif; ?>
 
-    <?php include 'includes/sidebar.php'; ?>
-
-    <div class="ml-64 p-8">
-        
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800"> Target Hafalan Individual</h2>
-        </div>
-
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6 text-sm">
-                <?= $_SESSION['success']; unset($_SESSION['success']); ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (empty($santri_list)): ?>
-            <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6 text-sm">
-                ️ Belum ada data santri. Silakan tambahkan santri di menu <b>Kelola Santri</b> terlebih dahulu.
-            </div>
-        <?php else: ?>
-
-        <!-- FORM PENETAPAN TARGET -->
-        <div class="bg-white rounded-xl shadow p-6 mb-6 border-l-4 border-orange-500">
-            <h3 class="text-lg font-bold text-orange-700 mb-4"> Tetapkan / Update Target Santri</h3>
-            <p class="text-sm text-gray-600 mb-4">Gunakan form ini untuk menentukan program hafalan lanjutan (ziyadah) berdasarkan kemampuan individual santri.</p>
-            
-            <form action="proses_target_santri.php" method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-4" autocomplete="off">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Pilih Santri</label>
-                    <select name="id_santri" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none">
-                        <option value="">-- Pilih Santri --</option>
-                        <?php foreach ($santri_list as $s): ?>
-                            <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['nama']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Target Ayat / Hari</label>
-                    <input type="number" name="target_ayat" min="1" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Cth: 5">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Tanggal Mulai</label>
-                    <input type="date" name="tanggal_mulai" required value="<?= date('Y-m-d') ?>" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Program / Keterangan</label>
-                    <input type="text" name="keterangan" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Cth: Lanjut Juz 30">
-                </div>
-                <div class="md:col-span-4">
-                    <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-6 rounded-lg transition text-sm">
-                        💾 Simpan Target
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- TABEL DAFTAR TARGET SANTRI -->
-        <div class="bg-white rounded-xl shadow p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4"> Daftar Target Hafalan Santri Saat Ini</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-orange-50 text-orange-700 uppercase text-xs">
-                            <th class="py-3 px-4">No</th>
-                            <th class="py-3 px-4">Nama Santri</th>
-                            <th class="py-3 px-4">Target (Ayat/Hari)</th>
-                            <th class="py-3 px-4">Tanggal Mulai</th>
-                            <th class="py-3 px-4">Program / Keterangan</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-gray-600 text-sm">
-                        <?php if (empty($target_list)): ?>
-                            <tr><td colspan="5" class="py-4 text-center text-gray-500">Belum ada target yang ditetapkan.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($target_list as $index => $t): ?>
-                                <tr class="border-b hover:bg-gray-50">
-                                    <td class="py-3 px-4"><?= $index + 1 ?></td>
-                                    <td class="py-3 px-4 font-medium"><?= htmlspecialchars($t['nama']) ?></td>
-                                    <td class="py-3 px-4">
-                                        <?php if ($t['target_ayat_per_hari']): ?>
-                                            <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold"><?= $t['target_ayat_per_hari'] ?> Ayat</span>
-                                        <?php else: ?>
-                                            <span class="text-gray-400 text-xs">Belum ditentukan</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="py-3 px-4"><?= $t['tanggal_mulai'] ? date('d M Y', strtotime($t['tanggal_mulai'])) : '-' ?></td>
-                                    <td class="py-3 px-4"><?= htmlspecialchars($t['keterangan'] ?? '-') ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <?php endif; ?>
-
+    <div class="bg-white border border-slate-200 rounded-xl p-6 mb-6 shadow-sm">
+        <h3 class="font-semibold text-slate-900 mb-4">Tetapkan Target Baru</h3>
+        <form method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div><label class="block text-xs font-medium text-slate-600 mb-1">Santri</label><select name="id_santri" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"><option value="">-- Pilih --</option><?php foreach ($santri_list as $s): ?><option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['nama']) ?></option><?php endforeach; ?></select></div>
+            <div><label class="block text-xs font-medium text-slate-600 mb-1">Target Surat / Juz</label><input type="text" name="target_surat" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="Cth: Al-Mulk"></div>
+            <div><label class="block text-xs font-medium text-slate-600 mb-1">Total Ayat Target</label><input type="number" name="total_ayat" id="total_ayat" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="Cth: 30"></div>
+            <div><label class="block text-xs font-medium text-slate-600 mb-1">Kecepatan (Ayat/Hari)</label><input type="number" name="target_ayat" id="target_ayat" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="Cth: 3"></div>
+            <div><label class="block text-xs font-medium text-slate-600 mb-1">Tanggal Mulai</label><input type="date" name="tanggal_mulai" id="tgl_mulai" required value="<?= date('Y-m-d') ?>" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></div>
+            <div><label class="block text-xs font-medium text-slate-600 mb-1">Estimasi Selesai (Otomatis)</label><input type="text" id="estimasi" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-600" placeholder="Akan dihitung otomatis"></div>
+            <div class="md:col-span-3"><label class="block text-xs font-medium text-slate-600 mb-1">Catatan Program</label><input type="text" name="keterangan" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" placeholder="Cth: Fokus tajwid"></div>
+            <div class="md:col-span-3"><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition text-sm">Simpan Target</button></div>
+        </form>
     </div>
 
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <h3 class="font-semibold text-slate-900 mb-4">Daftar Target Aktif Santri</h3>
+        <table class="w-full text-left">
+            <thead><tr class="border-b border-slate-200"><th class="py-3 px-4 text-xs font-medium text-slate-500 uppercase">Santri</th><th class="py-3 px-4 text-xs font-medium text-slate-500 uppercase">Target</th><th class="py-3 px-4 text-xs font-medium text-slate-500 uppercase">Kecepatan</th><th class="py-3 px-4 text-xs font-medium text-slate-500 uppercase">Estimasi Selesai</th><th class="py-3 px-4 text-xs font-medium text-slate-500 uppercase">Catatan</th></tr></thead>
+            <tbody class="text-sm">
+                <?php foreach ($target_list as $t): ?>
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="py-3 px-4 font-medium"><?= htmlspecialchars($t['nama']) ?></td>
+                    <td class="py-3 px-4"><?= htmlspecialchars($t['target_surat']) ?> <span class="text-slate-500 text-xs">(<?= $t['total_ayat_target'] ?> ayat)</span></td>
+                    <td class="py-3 px-4"><span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs font-bold"><?= $t['target_ayat_per_hari'] ?> ayat/hari</span></td>
+                    <td class="py-3 px-4 text-slate-600"><?= $t['tanggal_estimasi_selesai'] ? date('d M Y', strtotime($t['tanggal_estimasi_selesai'])) : '-' ?></td>
+                    <td class="py-3 px-4 text-slate-500 text-xs"><?= htmlspecialchars($t['keterangan'] ?? '-') ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    // Script untuk auto-calculate estimasi selesai
+    function hitungEstimasi() {
+        const total = document.getElementById('total_ayat').value;
+        const speed = document.getElementById('target_ayat').value;
+        const tglMulai = document.getElementById('tgl_mulai').value;
+        if (total && speed && tglMulai) {
+            const hari = Math.ceil(total / speed);
+            const tglSelesai = new Date(tglMulai);
+            tglSelesai.setDate(tglSelesai.getDate() + hari);
+            document.getElementById('estimasi').value = tglSelesai.toISOString().split('T')[0] + ` (${hari} hari)`;
+        }
+    }
+    document.getElementById('total_ayat').addEventListener('input', hitungEstimasi);
+    document.getElementById('target_ayat').addEventListener('input', hitungEstimasi);
+    document.getElementById('tgl_mulai').addEventListener('change', hitungEstimasi);
+</script>
 </body>
 </html>
