@@ -24,6 +24,7 @@ $halaman_aktif = basename($_SERVER['PHP_SELF']);
             <li><a href="monitoring_anak.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'monitoring_anak.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="book-open-check" class="w-4 h-4"></i>Progres Hafalan</a></li>
             <li><a href="absensi_anak.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'absensi_anak.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="calendar-check" class="w-4 h-4"></i>Kehadiran Anak</a></li>
             <li><a href="pr_anak.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'pr_anak.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="clipboard-list" class="w-4 h-4"></i>Tugas Rumah (PR)</a></li>
+            <li><a href="rapor_santri.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'rapor_santri.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i>Rapor Tahfidz</a></li>
             <?php endif; ?>
         </ul>
 
@@ -33,6 +34,7 @@ $halaman_aktif = basename($_SERVER['PHP_SELF']);
             <li><a href="kelola-ustadz.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'kelola-ustadz.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="users" class="w-4 h-4"></i>Kelola Ustadz</a></li>
         
             <li><a href="rekap_bulanan.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'rekap_bulanan.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="file-bar-chart" class="w-4 h-4"></i>Rekap Bulanan</a></li>
+            <li><a href="rapor_santri.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'rapor_santri.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="printer" class="w-4 h-4"></i>Cetak Rapor Santri</a></li>
         </ul>
         <?php endif; ?>
 
@@ -49,6 +51,8 @@ $halaman_aktif = basename($_SERVER['PHP_SELF']);
         <ul class="space-y-1 mb-4">
             <li><a href="kelola_santri.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'kelola_santri.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="graduation-cap" class="w-4 h-4"></i>Kelola Santri</a></li>
             <li><a href="target_santri.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'target_santri.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="target" class="w-4 h-4"></i>Target Hafalan</a></li>
+            <li><a href="input_rapor.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'input_rapor.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="table-2" class="w-4 h-4"></i>Input Leger Rapor</a></li>
+            <li><a href="rapor_santri.php" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $halaman_aktif == 'rapor_santri.php' ? 'bg-blue-600 text-white font-medium' : 'hover:bg-slate-800 hover:text-white' ?> transition"><i data-lucide="file-text" class="w-4 h-4"></i>Rapor Santri</a></li>
         </ul>
         <?php endif; ?>
     </nav>
