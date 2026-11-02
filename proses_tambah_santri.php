@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $no_hp_ortu     = mysqli_real_escape_string($conn, $_POST['no_hp_ortu']);
     $username_ortu  = mysqli_real_escape_string($conn, $_POST['username_ortu']);
     $password_ortu  = $_POST['password_ortu'];
+    $id_halaqah     = !empty($_POST['id_halaqah']) ? (int) $_POST['id_halaqah'] : "NULL";
 
     $check = mysqli_query($conn, "SELECT id FROM users WHERE username = '$username_ortu'");
     if (mysqli_num_rows($check) > 0) {
@@ -36,9 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
         $id_user_ortu = mysqli_insert_id($conn);
 
-        // ⬅️ UBAH 2: Tambahkan id_ustadz di query INSERT
-        $sql_santri = "INSERT INTO santri (nama, nis, jenis_kelamin, tanggal_lahir, alamat, nama_ortu, no_hp_ortu, id_user_ortu, id_ustadz) 
-                       VALUES ('$nama_santri', '$nis', '$jk', '$tgl_lahir', '$alamat', '$nama_ortu', '$no_hp_ortu', $id_user_ortu, $id_ustadz)";
+        // ⬅️ UBAH 2: Tambahkan id_ustadz dan id_halaqah di query INSERT
+        $sql_santri = "INSERT INTO santri (nama, nis, jenis_kelamin, tanggal_lahir, alamat, nama_ortu, no_hp_ortu, id_user_ortu, id_halaqah, id_ustadz) 
+                       VALUES ('$nama_santri', '$nis', '$jk', '$tgl_lahir', '$alamat', '$nama_ortu', '$no_hp_ortu', $id_user_ortu, $id_halaqah, $id_ustadz)";
         
         if (mysqli_query($conn, $sql_santri)) {
             $_SESSION['success'] = "✅ Santri '$nama_santri' dan akun Ortu berhasil ditambahkan!";

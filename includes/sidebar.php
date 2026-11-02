@@ -143,6 +143,14 @@ function isNavActive($target_files, $current_file) {
                     </a>
                 </li>
                 <li>
+                    <?php $aktif = isNavActive('kelola_kelas.php', $halaman_aktif); ?>
+                    <a href="kelola_kelas.php" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-150 <?= navItemClass('kelola_kelas.php', $halaman_aktif) ?>">
+                        <?php if ($aktif): ?><span class="absolute left-0 top-2 bottom-2 w-1 bg-white rounded-r-full"></span><?php endif; ?>
+                        <i data-lucide="school" class="w-4 h-4 <?= $aktif ? 'text-white' : 'text-amber-400 group-hover:text-amber-300' ?>"></i>
+                        <span>Kelas / Lokal Halaqah</span>
+                    </a>
+                </li>
+                <li>
                     <?php $aktif = isNavActive('kelola_santri.php', $halaman_aktif); ?>
                     <a href="kelola_santri.php" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-150 <?= navItemClass('kelola_santri.php', $halaman_aktif) ?>">
                         <?php if ($aktif): ?><span class="absolute left-0 top-2 bottom-2 w-1 bg-white rounded-r-full"></span><?php endif; ?>
@@ -238,6 +246,14 @@ function isNavActive($target_files, $current_file) {
         <div>
             <p class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-2.5 px-3">Manajemen & Evaluasi</p>
             <ul class="space-y-1">
+                <li>
+                    <?php $aktif = isNavActive('kelola_kelas.php', $halaman_aktif); ?>
+                    <a href="kelola_kelas.php" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-150 <?= navItemClass('kelola_kelas.php', $halaman_aktif) ?>">
+                        <?php if ($aktif): ?><span class="absolute left-0 top-2 bottom-2 w-1 bg-white rounded-r-full"></span><?php endif; ?>
+                        <i data-lucide="school" class="w-4 h-4 <?= $aktif ? 'text-white' : 'text-amber-400 group-hover:text-amber-300' ?>"></i>
+                        <span>Kelas / Lokal Halaqah</span>
+                    </a>
+                </li>
                 <li>
                     <?php $aktif = isNavActive('kelola_santri.php', $halaman_aktif); ?>
                     <a href="kelola_santri.php" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-150 <?= navItemClass('kelola_santri.php', $halaman_aktif) ?>">

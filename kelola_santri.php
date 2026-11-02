@@ -8,12 +8,16 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['ustadz', 'pim
     exit;
 }
 
-$query = "SELECT santri.*, users.username as username_ortu 
+$query = "SELECT santri.*, users.username as username_ortu, halaqah.nama_halaqah, halaqah.keterangan as ket_halaqah 
           FROM santri 
           LEFT JOIN users ON santri.id_user_ortu = users.id 
+          LEFT JOIN halaqah ON santri.id_halaqah = halaqah.id 
           ORDER BY santri.nama ASC";
 $result = mysqli_query($conn, $query);
 $santri_list = mysqli_fetch_all($result, MYSQLI_ASSOC);
+
+// Ambil daftar lokal untuk dropdown di kelola_santri.php
+$lokal_opsi = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama_halaqah, keterangan FROM halaqah ORDER BY id ASC"), MYSQLI_ASSOC);
 
 // Hitung Statistik Santri
 $total_santri = count($santri_list);
@@ -194,6 +198,16 @@ foreach ($santri_list as $s) {
                             <textarea name="alamat" rows="2" required placeholder="Cth: Jorong Jalikur Patanangan..."
                                 class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea>
                         </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Lokal / Kelas Halaqah</label>
+                            <select name="id_halaqah" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="">-- Pilih Lokal / Kelas --</option>
+                                <?php foreach ($lokal_opsi as $lk): ?>
+                                    <option value="<?= $lk['id'] ?>"><?= htmlspecialchars($lk['nama_halaqah']) ?> (<?= htmlspecialchars($lk['keterangan']) ?>)</option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Kolom Kanan: Data Orang Tua & Akun Login -->
@@ -327,7 +341,7 @@ foreach ($santri_list as $s) {
                             ?>
                                 <tr class="baris-santri hover:bg-slate-50/90 transition group" 
                                     data-jk="<?= htmlspecialchars($s['jenis_kelamin']) ?>"
-                                    data-search="<?= strtolower(htmlspecialchars($s['nama'] . ' ' . $s['nis'] . ' ' . $s['nama_ortu'] . ' ' . ($s['username_ortu'] ?? ''))) ?>">
+                                    data-search="<?= strtolower(htmlspecialchars($s['nama'] . ' ' . $s['nis'] . ' ' . ($s['nama_halaqah'] ?? '') . ' ' . $s['nama_ortu'] . ' ' . ($s['username_ortu'] ?? ''))) ?>">
                                     
                                     <td class="py-4 px-6 text-center text-xs font-semibold text-slate-400 nomor-urut"><?= $i + 1 ?></td>
                                     
@@ -341,6 +355,11 @@ foreach ($santri_list as $s) {
                                                 <p class="font-bold text-slate-900 leading-tight"><?= htmlspecialchars($s['nama']) ?></p>
                                                 <div class="flex items-center gap-2 mt-1">
                                                     <span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">NIS: <?= htmlspecialchars($s['nis'] ?: '-') ?></span>
+                                                    <?php if (!empty($s['nama_halaqah'])): ?>
+                                                        <span class="text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded">
+                                                            <?= htmlspecialchars($s['nama_halaqah']) ?>
+                                                        </span>
+                                                    <?php endif; ?>
                                                     <?php if (!empty($s['alamat'])): ?>
                                                         <span class="text-[11px] text-slate-400 truncate max-w-[160px]" title="<?= htmlspecialchars($s['alamat']) ?>">
                                                             • <?= htmlspecialchars($s['alamat']) ?>
@@ -471,6 +490,16 @@ foreach ($santri_list as $s) {
                     <textarea name="alamat" id="edit_alamat" rows="2" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea>
                 </div>
 
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Lokal / Kelas Halaqah</label>
+                    <select name="id_halaqah" id="edit_id_halaqah" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="">-- Pilih Lokal / Kelas --</option>
+                        <?php foreach ($lokal_opsi as $lk): ?>
+                            <option value="<?= $lk['id'] ?>"><?= htmlspecialchars($lk['nama_halaqah']) ?> (<?= htmlspecialchars($lk['keterangan']) ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
                 <div class="border-t border-slate-200 pt-4">
                     <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Data Orang Tua & Reset Password</p>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
@@ -562,6 +591,7 @@ foreach ($santri_list as $s) {
             document.getElementById('edit_nama_ortu').value = data.nama_ortu || '';
             document.getElementById('edit_no_hp').value = data.no_hp_ortu || '';
             document.getElementById('edit_username_ortu').value = data.username_ortu || '';
+            document.getElementById('edit_id_halaqah').value = data.id_halaqah || '';
             
             document.getElementById('modalEditSantri').classList.remove('hidden');
             lucide.createIcons();

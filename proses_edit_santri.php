@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $no_hp_ortu    = mysqli_real_escape_string($conn, trim($_POST['no_hp_ortu']));
     $username_ortu = mysqli_real_escape_string($conn, trim($_POST['username_ortu']));
     $password_baru = trim($_POST['password_baru'] ?? '');
+    $id_halaqah    = !empty($_POST['id_halaqah']) ? (int) $_POST['id_halaqah'] : "NULL";
 
     // 1. Cek duplikasi NIS pada santri lain
     $cek_nis = mysqli_query($conn, "SELECT id FROM santri WHERE nis = '$nis' AND id != $id_santri");
@@ -62,7 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     alamat = '$alamat',
                     nama_ortu = '$nama_ortu',
                     no_hp_ortu = '$no_hp_ortu',
-                    id_user_ortu = $id_ortu_sql
+                    id_user_ortu = $id_ortu_sql,
+                    id_halaqah = $id_halaqah
                    WHERE id = $id_santri";
 
     if (mysqli_query($conn, $sql_update)) {
