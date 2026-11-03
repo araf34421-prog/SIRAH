@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once 'includes/init_rbac.php';
 
 if (isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");

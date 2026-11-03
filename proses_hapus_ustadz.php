@@ -2,7 +2,7 @@
 session_start();
 require 'config/database.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'pimpinan') {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'pimpinan', 'ustadz'])) {
     header("Location: login.php");
     exit;
 }

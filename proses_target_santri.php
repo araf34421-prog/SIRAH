@@ -3,7 +3,7 @@ session_start();
 require 'config/database.php';
 
 // 🔒 Keamanan: Hanya Ustadz dan Pimpinan
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['ustadz', 'pimpinan'])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'])) {
     header("Location: login.php");
     exit;
 }

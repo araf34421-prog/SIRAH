@@ -2,7 +2,7 @@
 session_start();
 require 'config/database.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'pimpinan') {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'pimpinan', 'ustadz'])) {
     header("Location: login.php");
     exit;
 }
@@ -24,13 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $query = "INSERT INTO users (username, password, nama_lengkap, role) 
               VALUES ('$username', '$password_hash', '$nama_lengkap', '$role')";
-    
+
     if (mysqli_query($conn, $query)) {
-        $_SESSION['success'] = "✅ Ustadz/Ustadzah '$nama_lengkap' berhasil ditambahkan!";
+        $_SESSION['success'] = "✅ Data ustadz/ustadzah berhasil ditambahkan!";
     } else {
-        $_SESSION['error'] = "❌ Gagal menambahkan data: " . mysqli_error($conn);
+        $_SESSION['error'] = "❌ Terjadi kesalahan saat menyimpan data.";
     }
-    
+
     header("Location: kelola-ustadz.php");
     exit;
 }

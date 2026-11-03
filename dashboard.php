@@ -20,7 +20,7 @@ $predikat_data = ['A' => 0, 'B' => 0, 'C' => 0];
 $aktivitas_list = [];
 $target_widget = ['total' => 0, 'tercapai' => 0, 'persentase' => 0, 'label' => ''];
 
-if (in_array($role, ['ustadz', 'pimpinan'])) {
+if (in_array($role, ['operator', 'ustadz', 'pimpinan'])) {
     $total_santri = (int) mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM santri"))['total'];
     $total_ustadz = (int) mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM users WHERE role = 'ustadz'"))['total'];
 
@@ -53,7 +53,7 @@ if (in_array($role, ['ustadz', 'pimpinan'])) {
         }
     }
 
-    $target_widget['label'] = $role === 'pimpinan' ? 'Santri Mencapai Target Bulanan' : 'Realisasi Target Santri Binaan';
+    $target_widget['label'] = in_array($role, ['operator', 'pimpinan']) ? 'Santri Mencapai Target Bulanan' : 'Realisasi Target Santri Binaan';
     $target_widget['total'] = $total_santri;
     $capaian_query = "SELECT COUNT(DISTINCT s.id) as tercapai
                       FROM santri s
@@ -166,7 +166,7 @@ if (in_array($role, ['ustadz', 'pimpinan'])) {
                         <a href="input_rapor.php" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
                             <i data-lucide="table-2" class="w-4 h-4"></i> Leger Rapor
                         </a>
-                    <?php elseif ($role === 'pimpinan'): ?>
+                    <?php elseif (in_array($role, ['operator', 'pimpinan'])): ?>
                         <a href="rekap_bulanan.php" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
                             <i data-lucide="printer" class="w-4 h-4"></i> Cetak Rekap Bulanan
                         </a>
@@ -187,7 +187,7 @@ if (in_array($role, ['ustadz', 'pimpinan'])) {
 
         <!-- KARTU STATISTIK (KPI) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <?php if ($role === 'pimpinan'): ?>
+            <?php if (in_array($role, ['operator', 'pimpinan'])): ?>
                 <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Pengajar</p>
@@ -200,7 +200,7 @@ if (in_array($role, ['ustadz', 'pimpinan'])) {
                 </div>
             <?php endif; ?>
 
-            <?php if (in_array($role, ['ustadz', 'pimpinan'])): ?>
+            <?php if (in_array($role, ['operator', 'ustadz', 'pimpinan'])): ?>
                 <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Santri</p>
@@ -235,7 +235,7 @@ if (in_array($role, ['ustadz', 'pimpinan'])) {
                 </div>
             </div>
 
-            <?php if ($role !== 'pimpinan'): ?>
+            <?php if (!in_array($role, ['operator', 'pimpinan'])): ?>
             <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
                 <div>
                     <p class="text-xs font-bold text-purple-600 uppercase tracking-wider">Ujian Tasmi'</p>
@@ -251,7 +251,7 @@ if (in_array($role, ['ustadz', 'pimpinan'])) {
 
         <!-- GRAFIK TREN & DISTRIBUSI PREDIKAT -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm <?= in_array($role, ['ustadz', 'pimpinan']) ? 'lg:col-span-2' : 'lg:col-span-3' ?>">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm <?= in_array($role, ['operator', 'ustadz', 'pimpinan']) ? 'lg:col-span-2' : 'lg:col-span-3' ?>">
                 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
                     <div>
                         <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -270,7 +270,7 @@ if (in_array($role, ['ustadz', 'pimpinan'])) {
                 </div>
             </div>
 
-            <?php if (in_array($role, ['ustadz', 'pimpinan'])): ?>
+            <?php if (in_array($role, ['operator', 'ustadz', 'pimpinan'])): ?>
             <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                 <div>
                     <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -421,7 +421,7 @@ if (in_array($role, ['ustadz', 'pimpinan'])) {
             }
         });
 
-        <?php if (in_array($role, ['ustadz', 'pimpinan'])): ?>
+        <?php if (in_array($role, ['operator', 'ustadz', 'pimpinan'])): ?>
         const ctxDonat = document.getElementById('predikatChart').getContext('2d');
         new Chart(ctxDonat, {
             type: 'doughnut',

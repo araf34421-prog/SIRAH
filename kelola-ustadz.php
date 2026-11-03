@@ -2,8 +2,8 @@
 session_start();
 require 'config/database.php';
 
-// 🔒 Keamanan: Hanya Pimpinan
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'pimpinan') {
+// 🔒 Keamanan: Operator, Pimpinan, dan Ustadz (dikontrol juga dari hak_akses_menu)
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'pimpinan', 'ustadz'])) {
     header("Location: login.php");
     exit;
 }
@@ -18,6 +18,12 @@ if (mysqli_num_rows($cek_kolom) === 0) {
 $cek_kolom_h = mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'id_halaqah'");
 if (mysqli_num_rows($cek_kolom_h) === 0) {
     mysqli_query($conn, "ALTER TABLE users ADD COLUMN id_halaqah INT(11) DEFAULT NULL AFTER role");
+}
+
+// Otomatis tambahkan kolom nama_pengajar di tabel halaqah jika belum ada
+$cek_kolom_np = mysqli_query($conn, "SHOW COLUMNS FROM halaqah LIKE 'nama_pengajar'");
+if (mysqli_num_rows($cek_kolom_np) === 0) {
+    mysqli_query($conn, "ALTER TABLE halaqah ADD COLUMN nama_pengajar VARCHAR(100) DEFAULT NULL AFTER id_ustadz");
 }
 
 // === 1. PROSES TAMBAH USTADZ / USTADZAH ===
@@ -46,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_ustadz'])) {
         $sql = "INSERT INTO users (username, password, nama_lengkap, jenis_kelamin, role, id_halaqah) 
                 VALUES ('$username', '$password', '$nama_lengkap', '$jenis_kelamin', 'ustadz', $id_halaqah)";
         if (mysqli_query($conn, $sql)) {
-            $id_baru = mysqli_insert_id($conn);
-            mysqli_query($conn, "UPDATE halaqah SET id_ustadz = $id_baru WHERE id = $id_halaqah");
+            $id_user = mysqli_insert_id($conn);
+            mysqli_query($conn, "UPDATE halaqah SET id_ustadz = $id_user, nama_pengajar = '$nama_lengkap' WHERE id = $id_halaqah");
             $_SESSION['success'] = "$sebutan '$nama_lengkap' berhasil ditambahkan ke $nama_lokal!";
         } else {
             $_SESSION['error'] = "Gagal menyimpan data: " . mysqli_error($conn);
@@ -99,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_ustadz'])) {
                    WHERE id = $id_user AND role = 'ustadz'";
 
     if (mysqli_query($conn, $sql_update)) {
-        mysqli_query($conn, "UPDATE halaqah SET id_ustadz = $id_user WHERE id = $id_halaqah");
+        mysqli_query($conn, "UPDATE halaqah SET id_ustadz = $id_user, nama_pengajar = '$nama_lengkap' WHERE id = $id_halaqah");
         $_SESSION['success'] = "Data $sebutan '$nama_lengkap' berhasil diperbarui!";
     } else {
         $_SESSION['error'] = "Gagal memperbarui data.";
