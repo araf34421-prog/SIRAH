@@ -133,10 +133,13 @@ include __DIR__ . '/../../includes/header.php';
     <div class="ml-64 p-8">
         
         <!-- HERO BANNER -->
-        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-7 mb-8 text-white shadow-lg relative overflow-hidden">
+        <div class="bg-gradient-to-br from-[#061B15] via-[#0B3529] to-[#061B15] islamic-pattern rounded-3xl p-8 mb-8 text-white shadow-xl border border-amber-500/30 relative overflow-hidden">
+            <!-- Ornamen Cahaya Emas di Sudut -->
+            <div class="absolute -top-24 -right-24 w-72 h-72 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400/60 to-transparent pointer-events-none"></div>
             <div class="relative z-10 flex flex-wrap items-center justify-between gap-6">
                 <div>
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-semibold mb-3">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-200 text-xs font-semibold mb-3">
                         <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                         <span>Portal <?= ucfirst($role) ?> • <?= date('d F Y') ?></span>
                     </div>

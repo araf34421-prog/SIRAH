@@ -18,21 +18,21 @@ include __DIR__ . '/../../includes/header.php';
     <div class="w-full min-h-screen grid grid-cols-1 lg:grid-cols-12">
         
         <!-- PANEL KIRI: Branding & Identitas Surau (5 Kolom Full Height) -->
-        <div class="lg:col-span-5 bg-gradient-to-br from-slate-900 via-indigo-950 to-emerald-950 text-white p-8 md:p-12 xl:p-16 flex flex-col justify-between relative overflow-hidden border-r border-white/10">
+        <div class="lg:col-span-5 bg-gradient-to-br from-[#061B15] via-[#0B3529] to-[#061B15] islamic-pattern text-white p-8 md:p-12 xl:p-16 flex flex-col justify-between relative overflow-hidden border-r border-amber-500/30">
             
             <!-- Ornamen Cahaya & Pola Titik -->
-            <div class="absolute inset-0 bg-pattern opacity-40"></div>
-            <div class="absolute -top-28 -left-28 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-28 -right-28 w-80 h-80 bg-emerald-500/20 rounded-full blur-3xl"></div>
+            <div class="absolute inset-0 bg-pattern opacity-20"></div>
+            <div class="absolute -top-28 -left-28 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-28 -right-28 w-80 h-80 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none"></div>
 
             <!-- Bagian Atas: Ikon & Nama Surau -->
             <div class="relative z-10">
                 <div class="inline-flex items-center gap-4 mb-10">
-                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-950/50 border border-white/20">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center shadow-lg shadow-emerald-950/50 border border-amber-200/40">
                         <i data-lucide="book-open-check" class="w-7 h-7 text-white"></i>
                     </div>
                     <div>
-                        <span class="text-xs font-extrabold uppercase tracking-widest text-emerald-400 block">Sistem Informasi</span>
+                        <span class="text-xs font-extrabold uppercase tracking-widest text-amber-300 block">Sistem Informasi</span>
                         <h2 class="text-xl font-extrabold tracking-wide text-white leading-tight">SURAU TAHFIZH</h2>
                     </div>
                 </div>
@@ -69,8 +69,8 @@ include __DIR__ . '/../../includes/header.php';
             </div>
 
             <!-- Bagian Bawah: Lokasi Surau -->
-            <div class="relative z-10 mt-10 pt-6 border-t border-white/10 flex items-center gap-3 text-xs text-slate-300">
-                <i data-lucide="map-pin" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <div class="relative z-10 mt-10 pt-6 border-t border-amber-400/20 flex items-center gap-3 text-xs text-slate-300">
+                <i data-lucide="map-pin" class="w-4 h-4 text-amber-300 shrink-0"></i>
                 <span>Jorong Jalikur Patanangan, Koto Tangah, Kec. Tilatang Kamang, Kab. Agam</span>
             </div>
         </div>
