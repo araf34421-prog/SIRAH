@@ -1,6 +1,6 @@
 ================================================================================
 PROJECT: SIRAH (Sistem Informasi & Rekapitulasi Al-Qur'an / Hafalan Santri)
-TANGGAL DIGABUNGKAN: 2026-11-03 15:06:51
+TANGGAL DIGABUNGKAN: 2026-11-05 15:19:56
 TOTAL FILE CODE: 36
 FORMAT: File gabungan seluruh source code untuk Gemini / LLM Context
 ================================================================================
@@ -13,15 +13,15 @@ DAFTAR FILE CODE:
  4. config/database.php                      (307 bytes)
  5. dashboard.php                            (25,819 bytes)
  6. hafalan_santri.sql                       (17,789 bytes)
- 7. includes/init_rbac.php                   (7,485 bytes)
- 8. includes/sidebar.php                     (7,616 bytes)
+ 7. includes/init_rbac.php                   (10,597 bytes)
+ 8. includes/sidebar.php                     (7,807 bytes)
  9. index.php                                (160 bytes)
-10. input_kehadiran.php                      (13,386 bytes)
-11. input_murajaah.php                       (33,255 bytes)
-12. input_pr.php                             (14,302 bytes)
-13. input_rapor.php                          (33,548 bytes)
-14. input_tasmi.php                          (16,659 bytes)
-15. input_ziyadah.php                        (33,306 bytes)
+10. input_kehadiran.php                      (16,083 bytes)
+11. input_murajaah.php                       (33,572 bytes)
+12. input_pr.php                             (14,460 bytes)
+13. input_rapor.php                          (33,716 bytes)
+14. input_tasmi.php                          (23,360 bytes)
+15. input_ziyadah.php                        (33,623 bytes)
 16. kelola-ustadz.php                        (33,983 bytes)
 17. kelola_hak_akses.php                     (23,361 bytes)
 18. kelola_kelas.php                         (56,765 bytes)
@@ -30,7 +30,7 @@ DAFTAR FILE CODE:
 21. logout.php                               (86 bytes)
 22. monitoring_anak.php                      (17,329 bytes)
 23. pr_anak.php                              (18,227 bytes)
-24. progres_santri.php                       (15,302 bytes)
+24. progres_santri.php                       (21,255 bytes)
 25. proses_edit_santri.php                   (3,648 bytes)
 26. proses_hapus_santri.php                  (972 bytes)
 27. proses_hapus_ustadz.php                  (585 bytes)
@@ -41,8 +41,8 @@ DAFTAR FILE CODE:
 32. proses_tambah_ustadz.php                 (1,253 bytes)
 33. proses_target_santri.php                 (2,018 bytes)
 34. rapor_santri.php                         (29,444 bytes)
-35. rekap_bulanan.php                        (13,431 bytes)
-36. target_santri.php                        (25,466 bytes)
+35. rekap_bulanan.php                        (16,342 bytes)
+36. target_santri.php                        (25,656 bytes)
 --------------------------------------------------------------------------------
 
 FILE ASSETS (Gambar / Binary tidak disertakan kodenya):
@@ -1633,7 +1633,7 @@ INSERT INTO `rapor_tahfidz_detail` VALUES (2,1,1,'Al-fatihah + Yasin',95);
 
 ================================================================================
 FILE: includes/init_rbac.php
-UKURAN: 7,485 bytes
+UKURAN: 10,597 bytes
 ================================================================================
 <?php
 // Pastikan koneksi database sudah ada
@@ -1648,6 +1648,12 @@ if ($cek_role_col) {
     if (stripos($col_info['Type'], 'operator') === false) {
         mysqli_query($conn, "ALTER TABLE users MODIFY COLUMN `role` ENUM('operator','pimpinan','ustadz','ortu') NOT NULL DEFAULT 'ustadz'");
     }
+}
+
+// Pastikan kolom jenis_kelamin & id_halaqah ada di tabel users
+$cek_jk_u = mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'jenis_kelamin'");
+if ($cek_jk_u && mysqli_num_rows($cek_jk_u) === 0) {
+    mysqli_query($conn, "ALTER TABLE users ADD COLUMN jenis_kelamin ENUM('L','P') DEFAULT 'L' AFTER nama_lengkap");
 }
 
 // 2. Buat akun Operator Default jika belum ada sama sekali (user: operator | pass: operator123)
@@ -1681,31 +1687,22 @@ $cek_isi_menu = mysqli_query($conn, "SELECT COUNT(*) as total FROM hak_akses_men
 $total_menu_db = $cek_isi_menu ? (int)mysqli_fetch_assoc($cek_isi_menu)['total'] : 0;
 
 if ($total_menu_db === 0) {
-    // Format: [kode, nama, file_utama, file_terkait_csv, kategori, icon, warna_icon, urutan, op, pimpinan, ustadz, ortu]
     $default_menus = [
         ['dashboard', 'Dashboard Utama', 'dashboard.php', 'index.php', 'Menu Utama', 'layout-dashboard', 'text-indigo-400', 1, 1, 1, 1, 1],
-        
-        // Kategori: Manajemen Master (Fokus Operator & Pimpinan)
         ['kelola_hak_akses', 'Hak Akses & Menu Actor', 'kelola_hak_akses.php', '', 'Manajemen Sistem', 'shield-check', 'text-rose-400', 2, 1, 0, 0, 0],
         ['kelola_ustadz', 'Kelola Ustadz & Ustadzah', 'kelola-ustadz.php', 'proses_tambah_ustadz.php,proses_hapus_ustadz.php', 'Manajemen Lembaga', 'users', 'text-indigo-400', 3, 1, 1, 0, 0],
         ['kelola_kelas', 'Kelas / Lokal Halaqah', 'kelola_kelas.php', '', 'Manajemen Lembaga', 'layout-grid', 'text-amber-400', 4, 1, 1, 1, 0],
         ['kelola_santri', 'Kelola Data Santri', 'kelola_santri.php', 'proses_tambah_santri.php,proses_edit_santri.php,proses_hapus_santri.php', 'Manajemen Lembaga', 'graduation-cap', 'text-emerald-400', 5, 1, 1, 1, 0],
         ['target_santri', 'Target Hafalan Santri', 'target_santri.php', 'proses_target_santri.php', 'Manajemen Lembaga', 'target', 'text-teal-400', 6, 1, 1, 1, 0],
-
-        // Kategori: Pencatatan Harian
         ['input_ziyadah', 'Input Setoran Ziyadah', 'input_ziyadah.php', 'proses_input_hafalan.php', 'Pencatatan Harian', 'book-plus', 'text-emerald-400', 7, 1, 0, 1, 0],
         ['input_murajaah', 'Input Setoran Muraja\'ah', 'input_murajaah.php', 'proses_input_hafalan.php', 'Pencatatan Harian', 'refresh-cw', 'text-blue-400', 8, 1, 0, 1, 0],
         ['input_tasmi', 'Input Ujian Tasmi\'', 'input_tasmi.php', 'proses_input_hafalan.php', 'Pencatatan Harian', 'award', 'text-purple-400', 9, 1, 0, 1, 0],
         ['input_kehadiran', 'Input Kehadiran Harian', 'input_kehadiran.php', 'input_absensi.php', 'Pencatatan Harian', 'calendar-check', 'text-indigo-400', 10, 1, 0, 1, 0],
         ['input_pr', 'Berikan Tugas Rumah (PR)', 'input_pr.php', '', 'Pencatatan Harian', 'clipboard-list', 'text-orange-400', 11, 1, 0, 1, 0],
-
-        // Kategori: Evaluasi & Laporan
         ['progres_santri', 'Analisis Progres Santri', 'progres_santri.php', '', 'Evaluasi & Rapor', 'line-chart', 'text-sky-400', 12, 1, 1, 1, 0],
         ['input_rapor', 'Input Leger Rapor', 'input_rapor.php', 'proses_input_rapor.php', 'Evaluasi & Rapor', 'table-2', 'text-amber-400', 13, 1, 0, 1, 0],
         ['rapor_santri', 'Cetak Rapor Tahfidz', 'rapor_santri.php', '', 'Evaluasi & Rapor', 'printer', 'text-emerald-400', 14, 1, 1, 1, 1],
         ['rekap_bulanan', 'Rekapitulasi Bulanan', 'rekap_bulanan.php', '', 'Evaluasi & Rapor', 'file-bar-chart', 'text-purple-400', 15, 1, 1, 1, 0],
-
-        // Kategori: Portal Orang Tua
         ['monitoring_anak', 'Progres Hafalan Anak', 'monitoring_anak.php', '', 'Portal Wali Santri', 'book-open-check', 'text-emerald-400', 16, 1, 0, 0, 1],
         ['absensi_anak', 'Riwayat Kehadiran Anak', 'absensi_anak.php', '', 'Portal Wali Santri', 'calendar-check', 'text-blue-400', 17, 1, 0, 0, 1],
         ['pr_anak', 'Tugas Rumah (PR) Anak', 'pr_anak.php', '', 'Portal Wali Santri', 'clipboard-list', 'text-orange-400', 18, 1, 0, 0, 1]
@@ -1731,9 +1728,8 @@ if ($total_menu_db === 0) {
     }
 }
 
-// 5. Fungsi Helper untuk mengecek apakah Role tertentu berhak mengakses sebuah file PHP
+// 5. Fungsi Helper Cek Izin Akses File
 function cekIzinAksesFile($conn, $role, $nama_file) {
-    // Operator memiliki akses penuh ke seluruh fitur web
     if ($role === 'operator') return true;
     if (in_array($nama_file, ['login.php', 'proses_login.php', 'logout.php', 'dashboard.php', 'index.php'])) return true;
 
@@ -1750,7 +1746,6 @@ function cekIzinAksesFile($conn, $role, $nama_file) {
           WHERE file_utama = '$file_esc' OR FIND_IN_SET('$file_esc', file_terkait) > 0";
     $res = mysqli_query($conn, $q);
 
-    // Jika file terdaftar di tabel hak_akses_menu, pastikan minimal ada 1 baris yang mengizinkan (bernilai 1)
     if ($res && mysqli_num_rows($res) > 0) {
         while ($r = mysqli_fetch_assoc($res)) {
             if ((int)$r[$kolom_role] === 1) return true;
@@ -1759,18 +1754,82 @@ function cekIzinAksesFile($conn, $role, $nama_file) {
     }
     return true;
 }
+
+// 6. Fungsi Pintar: Deteksi apakah user yang login adalah Ustadzah (Perempuan) atau Ustadz (Laki-laki)
+function isPengajarUstadzah($conn, $id_user) {
+    $id_user = (int) $id_user;
+    if ($id_user <= 0) return false;
+
+    $q = mysqli_query($conn, "SELECT u.jenis_kelamin, u.nama_lengkap, u.username, h.nama_halaqah 
+                              FROM users u 
+                              LEFT JOIN halaqah h ON (u.id_halaqah = h.id OR h.id_ustadz = u.id) 
+                              WHERE u.id = $id_user LIMIT 1");
+    if ($q && $row = mysqli_fetch_assoc($q)) {
+        // Cek 1: Kolom jenis_kelamin di tabel users = 'P'
+        if (($row['jenis_kelamin'] ?? '') === 'P') return true;
+        // Cek 2: Username diawali 'ustadzah' atau nama mengandung 'ustadzah'
+        if (stripos($row['username'] ?? '', 'ustadzah') !== false) return true;
+        if (stripos($row['nama_lengkap'] ?? '', 'ustadzah') !== false) return true;
+        // Cek 3: Mengajar di lokal yang namanya mengandung 'Perempuan' atau 'Akhwat'
+        if (stripos($row['nama_halaqah'] ?? '', 'perempuan') !== false || stripos($row['nama_halaqah'] ?? '', 'akhwat') !== false) {
+            // Sekalian perbaiki kolom jenis_kelamin di database agar permanen 'P'
+            mysqli_query($conn, "UPDATE users SET jenis_kelamin = 'P' WHERE id = $id_user");
+            return true;
+        }
+    }
+    return false;
+}
+
+// 7. Fungsi Terpusat: Ambil SQL Filter Santri Khusus Binaan Ustadz/Ustadzah
+function getFilterSantriBinaanSQL($conn, $id_user, $role, $alias_tabel_santri = 's') {
+    // Operator & Pimpinan bisa melihat seluruh santri
+    if (in_array($role, ['operator', 'pimpinan'])) {
+        return "";
+    }
+
+    $id_user = (int) $id_user;
+    $u_info = mysqli_fetch_assoc(mysqli_query($conn, "SELECT id_halaqah, nama_lengkap, jenis_kelamin FROM users WHERE id = $id_user"));
+    $id_h_user = (int) ($u_info['id_halaqah'] ?? 0);
+    $nm_esc    = mysqli_real_escape_string($conn, trim($u_info['nama_lengkap'] ?? ''));
+
+    // Cari semua ID lokal yang diampu oleh Ustadz/Ustadzah ini
+    $q_lokal = mysqli_query($conn, "SELECT id, nama_halaqah FROM halaqah 
+                                    WHERE id_ustadz = $id_user 
+                                       OR id = $id_h_user 
+                                       OR (nama_pengajar IS NOT NULL AND nama_pengajar != '' AND LOWER(nama_pengajar) = LOWER('$nm_esc'))");
+    $lokal_ids = [];
+    if ($q_lokal) {
+        while ($lk = mysqli_fetch_assoc($q_lokal)) {
+            $lokal_ids[] = (int) $lk['id'];
+        }
+    }
+
+    $prefix = !empty($alias_tabel_santri) ? "$alias_tabel_santri." : "";
+
+    // Jika ustadz/ustadzah sudah punya lokal binaan, filter HANYA santri di lokal tersebut!
+    if (!empty($lokal_ids)) {
+        $list_id = implode(',', $lokal_ids);
+        return " WHERE {$prefix}id_halaqah IN ($list_id) ";
+    }
+
+    // Jika ustadz/ustadzah belum punya lokal spesifik, filter berdasarkan santri yang id_ustadz = beliau ATAU sesuai jenis kelaminnya (Putri utk Ustadzah, Putra utk Ustadz)
+    $is_ustadzah = isPengajarUstadzah($conn, $id_user);
+    $jk_target   = $is_ustadzah ? 'P' : 'L';
+    return " WHERE ({$prefix}id_ustadz = $id_user OR ({$prefix}id_halaqah IS NULL AND {$prefix}jenis_kelamin = '$jk_target')) ";
+}
 ?>
 
 
 ================================================================================
 FILE: includes/sidebar.php
-UKURAN: 7,616 bytes
+UKURAN: 7,807 bytes
 ================================================================================
 <?php
 require_once __DIR__ . '/init_rbac.php';
 
-$role = $_SESSION['role'] ?? '';
-$nama = $_SESSION['nama_lengkap'] ?? 'Pengguna';
+$role          = $_SESSION['role'] ?? '';
+$nama          = $_SESSION['nama_lengkap'] ?? 'Pengguna';
+$id_user_login = (int) ($_SESSION['user_id'] ?? 0);
 $halaman_aktif = basename($_SERVER['PHP_SELF']);
 
 // Proteksi Otomatis: Cek apakah role yang sedang login diizinkan mengakses file halaman ini
@@ -1780,7 +1839,7 @@ if (!empty($role) && !cekIzinAksesFile($conn, $role, $halaman_aktif)) {
     exit;
 }
 
-// Penyesuaian label role & warna badge
+// Penyesuaian label role & warna badge (Deteksi Akurat Ustadz vs Ustadzah dari DB & Lokal)
 $label_role = 'Pengguna';
 $badge_role_class = 'bg-slate-800 text-slate-300 border-slate-700';
 
@@ -1788,7 +1847,7 @@ if ($role === 'operator') {
     $label_role = 'Operator Sistem';
     $badge_role_class = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
 } elseif ($role === 'ustadz') {
-    if (stripos($nama, 'ustadzah') !== false) {
+    if (isPengajarUstadzah($conn, $id_user_login)) {
         $label_role = 'Ustadzah';
         $badge_role_class = 'bg-teal-500/15 text-teal-300 border-teal-500/30';
     } else {
@@ -1886,7 +1945,7 @@ foreach ($sidebar_menus as $sm) {
     <div class="p-3.5 border-t border-slate-800/80 bg-slate-900/60">
         <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800/90 flex items-center gap-3 mb-2.5">
             <div class="relative shrink-0">
-                <div class="w-9 h-9 bg-gradient-to-br <?= $role === 'operator' ? 'from-rose-500 to-orange-600' : 'from-indigo-500 to-purple-600' ?> rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                <div class="w-9 h-9 bg-gradient-to-br <?= $role === 'operator' ? 'from-rose-500 to-orange-600' : ($label_role === 'Ustadzah' ? 'from-teal-500 to-emerald-600' : 'from-indigo-500 to-purple-600') ?> rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
                     <?= strtoupper(substr($nama, 0, 1)) ?>
                 </div>
                 <span class="w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full absolute -bottom-0.5 -right-0.5"></span>
@@ -1930,63 +1989,105 @@ exit;
 
 ================================================================================
 FILE: input_kehadiran.php
-UKURAN: 13,386 bytes
+UKURAN: 16,083 bytes
 ================================================================================
 <?php
 session_start();
 require 'config/database.php';
 
-// Keamanan: Hanya Ustadz / Pimpinan
+// Keamanan: Hanya Operator, Ustadz/ah, dan Pimpinan
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'])) {
     header("Location: login.php");
     exit;
 }
 
-$id_ustadz = $_SESSION['user_id'];
+$id_ustadz = (int) $_SESSION['user_id'];
+$role      = $_SESSION['role'];
+$nama_user = $_SESSION['nama_lengkap'] ?? '';
+$is_pengelola_penuh = in_array($role, ['operator', 'pimpinan']);
+
+// Pastikan kolom status di tabel absensi mendukung format lengkap ('Hadir','Sakit','Izin','Alfa')
+// sekaligus konversi data lama ('H','S','I','A') jika pernah tersimpan
+mysqli_query($conn, "ALTER TABLE absensi MODIFY COLUMN `status` VARCHAR(15) NOT NULL DEFAULT 'Hadir'");
+mysqli_query($conn, "UPDATE absensi SET status = 'Hadir' WHERE status = 'H' OR status = ''");
+mysqli_query($conn, "UPDATE absensi SET status = 'Sakit' WHERE status = 'S'");
+mysqli_query($conn, "UPDATE absensi SET status = 'Izin'  WHERE status = 'I'");
+mysqli_query($conn, "UPDATE absensi SET status = 'Alfa'  WHERE status = 'A'");
 
 // Proses simpan absensi
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $tanggal = $_POST['tanggal'];
-    
-    foreach ($_POST['status'] as $id_santri => $status) {
-        $keterangan = mysqli_real_escape_string($conn, $_POST['keterangan'][$id_santri] ?? '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
+    $tanggal  = mysqli_real_escape_string($conn, $_POST['tanggal']);
+    $id_lokal = isset($_POST['id_lokal']) ? (int) $_POST['id_lokal'] : 0;
+
+    $map_lengkap = [
+        'H' => 'Hadir', 'Hadir' => 'Hadir',
+        'S' => 'Sakit', 'Sakit' => 'Sakit',
+        'I' => 'Izin',  'Izin'  => 'Izin',
+        'A' => 'Alfa',  'Alfa'  => 'Alfa'
+    ];
+
+    foreach ($_POST['status'] as $id_santri => $st_raw) {
+        $id_s       = (int) $id_santri;
+        $status_fix = $map_lengkap[$st_raw] ?? 'Hadir';
+        $keterangan = mysqli_real_escape_string($conn, trim($_POST['keterangan'][$id_s] ?? ''));
         
-        // Cek apakah sudah ada absensi untuk santri ini di tanggal tersebut
-        $cek = mysqli_query($conn, "SELECT id FROM absensi WHERE id_santri = $id_santri AND tanggal = '$tanggal'");
-        
-        if (mysqli_num_rows($cek) > 0) {
-            // Update jika sudah ada
-            mysqli_query($conn, "UPDATE absensi SET status = '$status', keterangan = '$keterangan', id_ustadz = $id_ustadz WHERE id_santri = $id_santri AND tanggal = '$tanggal'");
+        $cek = mysqli_query($conn, "SELECT id FROM absensi WHERE id_santri = $id_s AND tanggal = '$tanggal'");
+        if ($cek && mysqli_num_rows($cek) > 0) {
+            mysqli_query($conn, "UPDATE absensi SET status = '$status_fix', keterangan = '$keterangan', id_ustadz = $id_ustadz WHERE id_santri = $id_s AND tanggal = '$tanggal'");
         } else {
-            // Insert jika belum ada
-            mysqli_query($conn, "INSERT INTO absensi (id_santri, tanggal, status, keterangan, id_ustadz) VALUES ($id_santri, '$tanggal', '$status', '$keterangan', $id_ustadz)");
+            mysqli_query($conn, "INSERT INTO absensi (id_santri, tanggal, status, keterangan, id_ustadz) VALUES ($id_s, '$tanggal', '$status_fix', '$keterangan', $id_ustadz)");
         }
     }
     
-    $_SESSION['success'] = "Data absensi tanggal " . date('d F Y', strtotime($tanggal)) . " berhasil disimpan!";
-    header("Location: input_kehadiran.php?tanggal=$tanggal");
+    $_SESSION['success'] = "Data kehadiran tanggal " . date('d F Y', strtotime($tanggal)) . " berhasil disimpan!";
+    $q_lokal = $id_lokal > 0 ? "&id_lokal=$id_lokal" : "";
+    header("Location: input_kehadiran.php?tanggal=$tanggal" . $q_lokal);
     exit;
 }
 
 // Ambil tanggal (default hari ini)
-$tanggal = $_GET['tanggal'] ?? date('Y-m-d');
+$tanggal  = $_GET['tanggal'] ?? date('Y-m-d');
+$id_lokal = isset($_GET['id_lokal']) ? (int) $_GET['id_lokal'] : 0;
 
-// Ambil SEMUA santri
-$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama, nis FROM santri ORDER BY nama ASC"), MYSQLI_ASSOC);
+// Ambil daftar lokal (Jika Ustadz, utamakan lokal binaannya)
+$where_lokal_opsi = "";
+if (!$is_pengelola_penuh) {
+    $u_info = mysqli_fetch_assoc(mysqli_query($conn, "SELECT id_halaqah, nama_lengkap FROM users WHERE id = $id_ustadz"));
+    $id_h_user = (int) ($u_info['id_halaqah'] ?? 0);
+    $nm_esc    = mysqli_real_escape_string($conn, trim($u_info['nama_lengkap'] ?? $nama_user));
+    $where_lokal_opsi = "WHERE (id_ustadz = $id_ustadz OR id = $id_h_user OR LOWER(nama_pengajar) = LOWER('$nm_esc'))";
+}
+$lokal_list = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama_halaqah FROM halaqah $where_lokal_opsi ORDER BY id ASC"), MYSQLI_ASSOC);
+
+// Jika Ustadz hanya mengampu 1 lokal dan belum memilih filter, otomatis pilih lokalnya
+if ($id_lokal === 0 && !$is_pengelola_penuh && count($lokal_list) === 1) {
+    $id_lokal = (int) $lokal_list[0]['id'];
+}
+
+// Ambil daftar santri sesuai filter lokal
+$where_santri = $id_lokal > 0 ? "WHERE s.id_halaqah = $id_lokal" : "";
+$santri_query = "SELECT s.id, s.nama, s.nis, h.nama_halaqah 
+                 FROM santri s 
+                 LEFT JOIN halaqah h ON s.id_halaqah = h.id 
+                 $where_santri 
+                 ORDER BY s.nama ASC";
+$santri_list = mysqli_fetch_all(mysqli_query($conn, $santri_query), MYSQLI_ASSOC);
 
 // Ambil data absensi yang sudah diinput untuk tanggal tersebut
 $absensi_hari_ini = [];
-$statistik = ['H' => 0, 'S' => 0, 'I' => 0, 'A' => 0, 'Belum' => count($santri_list)];
+$statistik = ['H' => 0, 'S' => 0, 'I' => 0, 'A' => 0];
 
 if (!empty($santri_list)) {
-    $absensi_result = mysqli_query($conn, "SELECT * FROM absensi WHERE tanggal = '$tanggal'");
+    $tgl_esc = mysqli_real_escape_string($conn, $tanggal);
+    $absensi_result = mysqli_query($conn, "SELECT * FROM absensi WHERE tanggal = '$tgl_esc'");
     while ($row = mysqli_fetch_assoc($absensi_result)) {
         $absensi_hari_ini[$row['id_santri']] = $row;
-        // Hitung statistik (Status di db Anda sepertinya 'H','S','I','A' atau 'Hadir','Sakit', dsb. Kita asumsikan huruf depan)
-        $inisial = strtoupper(substr($row['status'], 0, 1)); 
-        if (isset($statistik[$inisial])) {
-            $statistik[$inisial]++;
-            $statistik['Belum']--;
+    }
+
+    foreach ($santri_list as $s) {
+        if (isset($absensi_hari_ini[$s['id']])) {
+            $in = strtoupper(substr(trim($absensi_hari_ini[$s['id']]['status']), 0, 1));
+            if (isset($statistik[$in])) $statistik[$in]++;
         }
     }
 }
@@ -2002,17 +2103,11 @@ if (!empty($santri_list)) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        
-        /* Hilangkan radio circle asli */
         .status-radio input[type="radio"] { display: none; }
-        
-        /* Desain label radio ketika TERPILIH */
-        .status-radio input[value^="H"]:checked + div { background-color: #10b981; color: white; border-color: #10b981; } /* Emerald untuk Hadir */
-        .status-radio input[value^="S"]:checked + div { background-color: #3b82f6; color: white; border-color: #3b82f6; } /* Blue untuk Sakit */
-        .status-radio input[value^="I"]:checked + div { background-color: #f59e0b; color: white; border-color: #f59e0b; } /* Amber untuk Izin */
-        .status-radio input[value^="A"]:checked + div { background-color: #f43f5e; color: white; border-color: #f43f5e; } /* Rose untuk Alfa */
-        
-        /* Desain hover agar terlihat bisa diklik */
+        .status-radio input[value="Hadir"]:checked + div { background-color: #10b981; color: white; border-color: #10b981; }
+        .status-radio input[value="Sakit"]:checked + div { background-color: #3b82f6; color: white; border-color: #3b82f6; }
+        .status-radio input[value="Izin"]:checked + div  { background-color: #f59e0b; color: white; border-color: #f59e0b; }
+        .status-radio input[value="Alfa"]:checked + div  { background-color: #f43f5e; color: white; border-color: #f43f5e; }
         .status-radio div:hover { filter: brightness(0.95); }
     </style>
 </head>
@@ -2023,131 +2118,136 @@ if (!empty($santri_list)) {
 <div class="ml-64 p-8">
     
     <!-- Header Halaman -->
-    <div class="flex justify-between items-end mb-8">
+    <div class="flex flex-wrap justify-between items-end gap-4 mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
-                <div class="p-2 bg-indigo-100 rounded-lg"><i data-lucide="calendar-check" class="w-6 h-6 text-indigo-600"></i></div>
-                Input Kehadiran
+            <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                <div class="p-2.5 bg-indigo-100 rounded-xl"><i data-lucide="calendar-check" class="w-6 h-6 text-indigo-600"></i></div>
+                Input Kehadiran Santri
             </h1>
-            <p class="text-sm text-slate-500 mt-2">Pilih tanggal dan catat presensi harian santri secara massal.</p>
+            <p class="text-sm text-slate-500 mt-1">Pilih tanggal dan lokal untuk mencatat presensi harian santri secara terstruktur.</p>
         </div>
         
-        <!-- Form Filter Tanggal -->
-        <form method="GET" class="bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-sm flex items-center gap-2">
-            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Tanggal :</label>
-            <input type="date" name="tanggal" value="<?= $tanggal ?>" onchange="this.form.submit()" 
-                class="bg-transparent text-sm font-semibold text-slate-700 outline-none cursor-pointer">
+        <!-- Form Filter Tanggal & Lokal -->
+        <form method="GET" class="bg-white border border-slate-200 p-2 rounded-2xl shadow-sm flex flex-wrap items-center gap-2">
+            <select name="id_lokal" onchange="this.form.submit()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer">
+                <option value="0">Semua Lokal / Kelas</option>
+                <?php foreach ($lokal_list as $lk): ?>
+                    <option value="<?= $lk['id'] ?>" <?= (int)$lk['id'] === $id_lokal ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($lk['nama_halaqah']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i>
+                <input type="date" name="tanggal" value="<?= htmlspecialchars($tanggal) ?>" onchange="this.form.submit()" 
+                    class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer">
+            </div>
         </form>
     </div>
 
     <!-- Notifikasi Sukses -->
     <?php if (isset($_SESSION['success'])): ?>
-        <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl mb-6 text-sm flex items-center gap-3 shadow-sm animate-fade-in">
-            <i data-lucide="check-circle" class="w-5 h-5"></i>
-            <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl mb-6 text-xs font-medium flex items-center gap-2.5 shadow-sm">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+            <span><?= $_SESSION['success']; unset($_SESSION['success']); ?></span>
         </div>
     <?php endif; ?>
-
-    <?php if (empty($santri_list)): ?>
-        <div class="bg-amber-50 border-l-4 border-amber-500 text-amber-800 p-4 rounded-xl mb-6 text-sm flex items-center gap-2">
-            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-            Belum ada data santri. Silakan tambahkan santri di menu <b>Kelola Santri</b> terlebih dahulu.
-        </div>
-    <?php else: ?>
 
     <!-- Papan Statistik Kehadiran -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Santri</p>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Santri Ditampilkan</p>
             <p class="text-2xl font-black text-slate-800"><?= count($santri_list) ?></p>
         </div>
         <div class="bg-white border border-emerald-200 border-b-4 border-b-emerald-500 rounded-xl p-4 shadow-sm text-center">
-            <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Hadir</p>
+            <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Hadir</p>
             <p class="text-2xl font-black text-emerald-600"><?= $statistik['H'] ?></p>
         </div>
         <div class="bg-white border border-blue-200 border-b-4 border-b-blue-500 rounded-xl p-4 shadow-sm text-center">
-            <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Sakit</p>
+            <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Sakit</p>
             <p class="text-2xl font-black text-blue-600"><?= $statistik['S'] ?></p>
         </div>
         <div class="bg-white border border-amber-200 border-b-4 border-b-amber-500 rounded-xl p-4 shadow-sm text-center">
-            <p class="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Izin</p>
+            <p class="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1">Izin</p>
             <p class="text-2xl font-black text-amber-600"><?= $statistik['I'] ?></p>
         </div>
         <div class="bg-white border border-rose-200 border-b-4 border-b-rose-500 rounded-xl p-4 shadow-sm text-center">
-            <p class="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-1">Alfa</p>
+            <p class="text-[10px] font-bold text-rose-600 uppercase tracking-widest mb-1">Alfa</p>
             <p class="text-2xl font-black text-rose-600"><?= $statistik['A'] ?></p>
         </div>
     </div>
 
+    <?php if (empty($santri_list)): ?>
+        <div class="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+            <i data-lucide="users" class="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700">Tidak ada santri pada filter lokal ini</p>
+            <p class="text-xs text-slate-400 mt-1">Pilih "Semua Lokal / Kelas" atau tempatkan santri terlebih dahulu di menu Kelas.</p>
+        </div>
+    <?php else: ?>
+
     <!-- Form Absensi Massal -->
     <form method="POST" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-10">
-        <input type="hidden" name="tanggal" value="<?= $tanggal ?>">
+        <input type="hidden" name="tanggal" value="<?= htmlspecialchars($tanggal) ?>">
+        <input type="hidden" name="id_lokal" value="<?= $id_lokal ?>">
         
-        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-            <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-                <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i> Daftar Presensi Santri
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap justify-between items-center gap-3">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="list-checks" class="w-4 h-4 text-indigo-600"></i> Daftar Presensi Santri (<?= date('d M Y', strtotime($tanggal)) ?>)
             </h3>
-            <!-- Tombol Simpan Atas (jika data banyak) -->
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1.5 px-4 rounded-lg transition shadow flex items-center gap-2 text-xs">
-                <i data-lucide="save" class="w-3 h-3"></i> Simpan
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-xl transition shadow-sm flex items-center gap-2 text-xs">
+                <i data-lucide="save" class="w-3.5 h-3.5"></i> Simpan Kehadiran
             </button>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="bg-white text-slate-400 text-[11px] uppercase tracking-wider border-b border-slate-200">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50/70 text-slate-400 text-[11px] uppercase tracking-wider border-b border-slate-200">
                     <tr>
-                        <th class="py-4 px-6 font-semibold w-10 text-center">No</th>
-                        <th class="py-4 px-4 font-semibold">Profil Santri</th>
-                        <th class="py-4 px-4 font-semibold text-center w-[340px]">Status Kehadiran</th>
-                        <th class="py-4 px-6 font-semibold">Keterangan Opsional</th>
+                        <th class="py-3.5 px-6 font-semibold w-12 text-center">No</th>
+                        <th class="py-3.5 px-4 font-semibold">Profil Santri & Lokal</th>
+                        <th class="py-3.5 px-4 font-semibold text-center w-[340px]">Status Kehadiran</th>
+                        <th class="py-3.5 px-6 font-semibold">Keterangan Opsional</th>
                     </tr>
                 </thead>
                 <tbody class="text-sm divide-y divide-slate-100">
                     <?php 
-                    // Set status DB (sesuaikan dgn ENUM db anda: 'Hadir','Sakit','Izin','Alfa' atau 'H','S','I','A')
-                    // Default nilai form kita gunakan lengkap
                     $opsi_status = ['Hadir', 'Sakit', 'Izin', 'Alfa']; 
 
                     foreach ($santri_list as $index => $s): 
-                        // Jika belum ada data di DB, default ke Hadir
-                        $status_aktif = $absensi_hari_ini[$s['id']]['status'] ?? 'Hadir';
-                        
-                        // Perbaikan jika format DB hanya 'H', konversi ke 'Hadir' untuk UI form
-                        if ($status_aktif == 'H') $status_aktif = 'Hadir';
-                        if ($status_aktif == 'S') $status_aktif = 'Sakit';
-                        if ($status_aktif == 'I') $status_aktif = 'Izin';
-                        if ($status_aktif == 'A') $status_aktif = 'Alfa';
-
+                        $raw_st = $absensi_hari_ini[$s['id']]['status'] ?? 'Hadir';
+                        $in_st  = strtoupper(substr(trim($raw_st), 0, 1));
+                        $status_aktif = ($in_st === 'S') ? 'Sakit' : (($in_st === 'I') ? 'Izin' : (($in_st === 'A') ? 'Alfa' : 'Hadir'));
                         $keterangan_aktif = $absensi_hari_ini[$s['id']]['keterangan'] ?? '';
                     ?>
                     <tr class="hover:bg-slate-50 transition group">
-                        <td class="py-3 px-6 text-slate-400 font-medium text-center"><?= $index + 1 ?></td>
-                        <td class="py-3 px-4">
-                            <p class="font-bold text-slate-800"><?= htmlspecialchars($s['nama']) ?></p>
-                            <p class="text-xs text-slate-400">NIS: <?= htmlspecialchars($s['nis'] ?? '-') ?></p>
+                        <td class="py-3.5 px-6 text-slate-400 font-semibold text-xs text-center"><?= $index + 1 ?></td>
+                        <td class="py-3.5 px-4">
+                            <p class="font-bold text-slate-900 text-xs"><?= htmlspecialchars($s['nama']) ?></p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[11px] text-slate-400 font-mono">NIS: <?= htmlspecialchars($s['nis'] ?: '-') ?></span>
+                                <?php if (!empty($s['nama_halaqah'])): ?>
+                                    <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded"><?= htmlspecialchars($s['nama_halaqah']) ?></span>
+                                <?php endif; ?>
+                            </div>
                         </td>
-                        <td class="py-3 px-4">
-                            <!-- Toggle Button Status -->
-                            <div class="flex items-center justify-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 w-max mx-auto">
-                                <?php foreach ($opsi_status as $st): 
-                                    $inisial = substr($st, 0, 1);
-                                ?>
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center justify-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 w-max mx-auto">
+                                <?php foreach ($opsi_status as $st): ?>
                                 <label class="status-radio cursor-pointer">
-                                    <!-- Gunakan inisial huruf pertama sebagai value database (H, S, I, A) -->
-                                    <input type="radio" name="status[<?= $s['id'] ?>]" value="<?= $inisial ?>" <?= ($status_aktif === $st || $status_aktif === $inisial) ? 'checked' : '' ?> required>
-                                    <div class="px-4 py-1.5 rounded-md text-xs font-bold text-slate-500 transition-colors border border-transparent">
+                                    <input type="radio" name="status[<?= $s['id'] ?>]" value="<?= $st ?>" <?= $status_aktif === $st ? 'checked' : '' ?> required>
+                                    <div class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-500 transition-colors border border-transparent">
                                         <?= strtoupper($st) ?>
                                     </div>
                                 </label>
                                 <?php endforeach; ?>
                             </div>
                         </td>
-                        <td class="py-3 px-6">
+                        <td class="py-3.5 px-6">
                             <input type="text" name="keterangan[<?= $s['id'] ?>]" 
                                 value="<?= htmlspecialchars($keterangan_aktif) ?>" 
-                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition group-hover:border-slate-300" 
-                                placeholder="Alasan sakit/izin...">
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition" 
+                                placeholder="Cth: Demam / Izin acara keluarga...">
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -2155,10 +2255,10 @@ if (!empty($santri_list)) {
             </table>
         </div>
 
-        <div class="px-6 py-5 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
-            <p class="text-xs text-slate-500 font-medium"><i data-lucide="info" class="w-3 h-3 inline"></i> Default status adalah Hadir jika belum pernah diisi.</p>
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-8 rounded-xl transition shadow-lg shadow-indigo-200 flex items-center gap-2 focus:ring-4 focus:ring-indigo-100">
-                <i data-lucide="save" class="w-5 h-5"></i> Simpan Data Presensi
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+            <p class="text-xs text-slate-500">Data tersimpan ke tabel <b>absensi</b> dan langsung terhubung ke Rekap Bulanan serta Portal Wali Santri.</p>
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-7 rounded-xl transition shadow-md flex items-center gap-2 text-xs">
+                <i data-lucide="save" class="w-4 h-4"></i> Simpan Data Presensi
             </button>
         </div>
     </form>
@@ -2166,18 +2266,14 @@ if (!empty($santri_list)) {
 
 </div>
 
-<script>
-    // Render icon
-    lucide.createIcons();
-</script>
-
+<script>lucide.createIcons();</script>
 </body>
 </html>
 
 
 ================================================================================
 FILE: input_murajaah.php
-UKURAN: 33,255 bytes
+UKURAN: 33,572 bytes
 ================================================================================
 <?php
 session_start();
@@ -2204,21 +2300,26 @@ if (isset($_GET['hapus'])) {
     exit;
 }
 
-// Ambil daftar santri beserta nama lokalnya
+require_once 'includes/init_rbac.php';
+$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
+
+// Ambil daftar santri khusus lokal binaan Ustadz/Ustadzah yang login
 $santri_query = "SELECT s.id, s.nama, s.nis, h.nama_halaqah 
                  FROM santri s 
                  LEFT JOIN halaqah h ON s.id_halaqah = h.id 
+                 $where_binaan
                  ORDER BY s.nama ASC";
 $santri_result = mysqli_query($conn, $santri_query);
 $santri_list = mysqli_fetch_all($santri_result, MYSQLI_ASSOC);
 
-// Ambil riwayat murajaah hari ini
+// Ambil riwayat murajaah hari ini (khusus santri binaan)
 $jenis_halaman = 'murajaah'; 
+$and_binaan = !empty($where_binaan) ? str_replace('WHERE', 'AND', $where_binaan) : '';
 $riwayat_query = "SELECT h.*, s.nama as nama_santri, hl.nama_halaqah 
                   FROM hafalan h 
                   JOIN santri s ON h.id_santri = s.id 
                   LEFT JOIN halaqah hl ON s.id_halaqah = hl.id
-                  WHERE h.tanggal = CURDATE() AND h.jenis = '$jenis_halaman' 
+                  WHERE h.tanggal = CURDATE() AND h.jenis = '$jenis_halaman' $and_binaan
                   ORDER BY h.id DESC";
 $riwayat_result = mysqli_query($conn, $riwayat_query);
 $riwayat_list = mysqli_fetch_all($riwayat_result, MYSQLI_ASSOC);
@@ -2693,7 +2794,7 @@ $daftar_surat = ["Al-Fatihah","Al-Baqarah","Ali 'Imran","An-Nisa'","Al-Ma'idah",
 
 ================================================================================
 FILE: input_pr.php
-UKURAN: 14,302 bytes
+UKURAN: 14,460 bytes
 ================================================================================
 <?php
 session_start();
@@ -2712,7 +2813,9 @@ if (mysqli_num_rows($cek_kolom_pr) === 0) {
 }
 
 $id_ustadz = $_SESSION['user_id'];
-$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama, nis FROM santri ORDER BY nama ASC"), MYSQLI_ASSOC);
+require_once 'includes/init_rbac.php';
+$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
+$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT s.id, s.nama, s.nis FROM santri s $where_binaan ORDER BY s.nama ASC"), MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {   
     $tanggal = $_POST['tanggal'];
@@ -2933,7 +3036,7 @@ $riwayat_list = mysqli_fetch_all(mysqli_query($conn, $riwayat_query), MYSQLI_ASS
 
 ================================================================================
 FILE: input_rapor.php
-UKURAN: 33,548 bytes
+UKURAN: 33,716 bytes
 ================================================================================
 <?php
 session_start();
@@ -2957,12 +3060,15 @@ $surat_juz_30 = [
 ];
 
 // Ambil daftar santri beserta Lokal/Kelas & Ustadz Pengampunya
+require_once 'includes/init_rbac.php';
+$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
 $santri_query = "SELECT s.id, s.nama, s.nis, s.jenis_kelamin, s.id_halaqah, 
                         h.nama_halaqah, h.keterangan as ket_lokal,
                         COALESCE(u.nama_lengkap, h.nama_pengajar) as pengajar_lokal
                  FROM santri s
                  LEFT JOIN halaqah h ON s.id_halaqah = h.id
                  LEFT JOIN users u ON h.id_ustadz = u.id
+                 $where_binaan
                  ORDER BY s.nama ASC";
 $santri_res = mysqli_query($conn, $santri_query);
 $santri_list = mysqli_fetch_all($santri_res, MYSQLI_ASSOC);
@@ -3445,7 +3551,7 @@ if (count($detail_data) > 0) {
 
 ================================================================================
 FILE: input_tasmi.php
-UKURAN: 16,659 bytes
+UKURAN: 23,360 bytes
 ================================================================================
 <?php
 session_start();
@@ -3456,35 +3562,92 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'u
     exit;
 }
 
-$santri_query = "SELECT id, nama, nis FROM santri ORDER BY nama ASC";
+$id_ustadz = (int) $_SESSION['user_id'];
+$role      = $_SESSION['role'];
+$nama_user = $_SESSION['nama_lengkap'] ?? '';
+$is_pengelola_penuh = in_array($role, ['operator', 'pimpinan']);
+
+// Pastikan kolom juz & pojok ada di tabel hafalan
+$cek_juz = mysqli_query($conn, "SHOW COLUMNS FROM hafalan LIKE 'juz'");
+if ($cek_juz && mysqli_num_rows($cek_juz) === 0) {
+    mysqli_query($conn, "ALTER TABLE hafalan ADD COLUMN `juz` INT(11) DEFAULT NULL AFTER `jenis`");
+    mysqli_query($conn, "ALTER TABLE hafalan ADD COLUMN `pojok` VARCHAR(30) DEFAULT NULL AFTER `juz`");
+}
+
+// Hapus riwayat tasmi jika diminta
+if (isset($_GET['hapus'])) {
+    $id_hapus = (int) $_GET['hapus'];
+    mysqli_query($conn, "DELETE FROM hafalan WHERE id = $id_hapus AND jenis = 'tasmi'");
+    $_SESSION['success'] = "Data ujian tasmi' berhasil dihapus.";
+    header("Location: input_tasmi.php");
+    exit;
+}
+
+// Filter santri sesuai kelas ustadz jika bukan operator/pimpinan
+$where_santri = "";
+if (!$is_pengelola_penuh) {
+    $u_info = mysqli_fetch_assoc(mysqli_query($conn, "SELECT id_halaqah, nama_lengkap FROM users WHERE id = $id_ustadz"));
+    $id_h_user = (int) ($u_info['id_halaqah'] ?? 0);
+    $nm_esc    = mysqli_real_escape_string($conn, trim($u_info['nama_lengkap'] ?? $nama_user));
+    
+    // Ambil ID lokal yang diampu ustadz ini
+    $q_lokal_ust = mysqli_query($conn, "SELECT id FROM halaqah WHERE id_ustadz = $id_ustadz OR id = $id_h_user OR LOWER(nama_pengajar) = LOWER('$nm_esc')");
+    $lokal_ids = [];
+    while ($lk = mysqli_fetch_assoc($q_lokal_ust)) {
+        $lokal_ids[] = (int)$lk['id'];
+    }
+
+    if (!empty($lokal_ids)) {
+        $list_id_str = implode(',', $lokal_ids);
+        $where_santri = "WHERE s.id_halaqah IN ($list_id_str)";
+    } else {
+        // Jika tidak mengampu lokal manapun, tampilkan kosong
+        $where_santri = "WHERE 1 = 0";
+    }
+}
+
+$santri_query = "SELECT s.id, s.nama, s.nis, h.nama_halaqah 
+                 FROM santri s 
+                 LEFT JOIN halaqah h ON s.id_halaqah = h.id 
+                 $where_santri 
+                 ORDER BY s.nama ASC";
 $santri_result = mysqli_query($conn, $santri_query);
 $santri_list = mysqli_fetch_all($santri_result, MYSQLI_ASSOC);
 
-$jenis_halaman = 'tasmi'; 
-$riwayat_query = "SELECT h.*, s.nama as nama_santri FROM hafalan h JOIN santri s ON h.id_santri = s.id WHERE h.tanggal = CURDATE() AND h.jenis = '$jenis_halaman' ORDER BY h.id DESC";
-$riwayat_result = mysqli_query($conn, $riwayat_query);
-$riwayat_list = mysqli_fetch_all($riwayat_result, MYSQLI_ASSOC);
+// Riwayat tasmi hari ini
+$riwayat_query = "SELECT h.*, s.nama as nama_santri, hl.nama_halaqah 
+                  FROM hafalan h 
+                  JOIN santri s ON h.id_santri = s.id 
+                  LEFT JOIN halaqah hl ON s.id_halaqah = hl.id
+                  WHERE h.tanggal = CURDATE() AND h.jenis = 'tasmi' 
+                  ORDER BY h.id DESC";
+$riwayat_list = mysqli_fetch_all(mysqli_query($conn, $riwayat_query), MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Input Tasmi' - Surau Tahfizh Firdaus</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Sembunyikan radio circle bawaan */
-        .radio-card input[type="radio"] { display: none; }
-        /* Style saat radio card dipilih */
-        .radio-card input[type="radio"]:checked + div {
-            border-color: currentColor;
-            background-color: currentColor;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        .predikat-radio input[type="radio"] { display: none; }
+        .predikat-radio input[value="A"]:checked + div {
+            border-color: #9333ea; background-color: #faf5ff; color: #7e22ce;
+            box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.15);
         }
-        .radio-card input[type="radio"]:checked + div .text-subtitle { color: rgba(255,255,255,0.8); }
+        .predikat-radio input[value="B"]:checked + div {
+            border-color: #f59e0b; background-color: #fffbeb; color: #b45309;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+        }
+        .predikat-radio input[value="C"]:checked + div {
+            border-color: #f43f5e; background-color: #fff1f2; color: #be123c;
+            box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.15);
+        }
+        .predikat-radio input[type="radio"]:checked + div .check-badge { opacity: 1; transform: scale(1); }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800">
@@ -3492,214 +3655,268 @@ $riwayat_list = mysqli_fetch_all($riwayat_result, MYSQLI_ASSOC);
     <?php include 'includes/sidebar.php'; ?>
 
     <div class="ml-64 p-8">
+        
         <!-- Header Halaman -->
-        <div class="flex justify-between items-end mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
-                    <div class="p-2 bg-purple-100 rounded-lg"><i data-lucide="award" class="w-6 h-6 text-purple-600"></i></div>
-                    Input Tasmi'
-                </h1>
-                <p class="text-sm text-slate-500 mt-2">Catat hasil ujian hafalan sekali duduk (tasmi') santri.</p>
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-center text-purple-600">
+                    <i data-lucide="award" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Input Ujian Tasmi'</h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Pencatatan hasil ujian hafalan sekali duduk (tasmi') santri per Juz dan Pojok.</p>
+                </div>
             </div>
-            <div class="bg-white border border-slate-200 px-5 py-2.5 rounded-xl shadow-sm text-sm font-medium text-slate-700 flex items-center gap-2">
-                <i data-lucide="calendar" class="w-4 h-4 text-purple-500"></i> <?= date('d F Y') ?>
+
+            <div class="flex items-center gap-2.5">
+                <button type="button" onclick="tampilkanNotifPanduan()" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 px-3.5 py-2 rounded-xl shadow-sm text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="help-circle" class="w-4 h-4 text-purple-600"></i>
+                    <span>Panduan Nilai</span>
+                </button>
+                <div class="bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm text-xs font-semibold text-slate-700 flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4 text-purple-600"></i>
+                    <span><?= date('d F Y') ?></span>
+                </div>
             </div>
         </div>
 
         <?php if (isset($_SESSION['success'])): ?>
-            <div class="bg-purple-50 border border-purple-200 text-purple-700 px-4 py-3 rounded-xl mb-6 text-sm flex items-center gap-3 shadow-sm animate-fade-in">
-                <i data-lucide="check-circle" class="w-5 h-5"></i> <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+            <div id="alertSuccess" class="bg-purple-50 border border-purple-200 text-purple-800 px-4 py-3 rounded-xl mb-6 text-xs font-medium flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-2.5">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-purple-600 shrink-0"></i>
+                    <span><?= $_SESSION['success']; unset($_SESSION['success']); ?></span>
+                </div>
+                <button type="button" onclick="document.getElementById('alertSuccess').remove()" class="text-purple-600 hover:text-purple-900"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
         <?php endif; ?>
 
         <?php if (empty($santri_list)): ?>
-            <div class="bg-amber-50 border-l-4 border-amber-500 text-amber-800 p-4 rounded-xl mb-6 text-sm flex items-center gap-2">
-                <i data-lucide="alert-triangle" class="w-5 h-5"></i> Belum ada data santri. Silakan tambah di menu Kelola Santri terlebih dahulu.
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-6 text-xs font-medium flex items-center gap-2.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+                <span>Belum ada santri di lokal binaan Anda. Silakan cek penempatan kelas di menu <b>Kelas / Lokal Halaqah</b>.</span>
             </div>
         <?php else: ?>
 
-        <!-- GRID 2 KOLOM (FORM & INFORMASI) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            
-            <!-- FORM INPUT -->
-            <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                    <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-                        <i data-lucide="edit-3" class="w-4 h-4 text-purple-600"></i> Formulir Ujian Tasmi'
-                    </h3>
+        <!-- FORMULIR TASMI' (CLEAN FULL-WIDTH CARD) -->
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/60 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-purple-600"></span>
+                    <h2 class="text-sm font-bold text-slate-800">Formulir Ujian Tasmi' Baru</h2>
                 </div>
-                
-                <form action="proses_input_hafalan.php" method="POST" class="p-6" autocomplete="off">
-                    <input type="hidden" name="jenis" value="tasmi">
-                    <!-- Untuk Tasmi, sistem menganggap 1 sesi penuh ujian -->
-                    <input type="hidden" name="ayat_awal" value="1">
-                    <input type="hidden" name="ayat_akhir" value="1">
-                    
-                    <div class="space-y-6">
-                        <!-- Pilihan Santri -->
-                        <div>
-                            <label class="block text-xs font-bold tracking-wide text-slate-500 uppercase mb-2">Nama Santri</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i data-lucide="user" class="h-4 w-4 text-slate-400"></i>
-                                </div>
-                                <select name="id_santri" required class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-slate-50 hover:bg-white transition outline-none appearance-none cursor-pointer">
-                                    <option value="" disabled selected>-- Ketik / Pilih Santri --</option>
-                                    <?php foreach ($santri_list as $s): ?>
-                                        <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['nama']) ?> <?= $s['nis'] ? '('.$s['nis'].')' : '' ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
+                <span class="text-xs text-slate-500">Ujian Sekali Duduk (1 Juz / Beberapa Juz)</span>
+            </div>
 
-                        <!-- Surat / Juz -->
-                        <div>
-                            <label class="block text-xs font-bold tracking-wide text-slate-500 uppercase mb-2">Juz / Surat yang Ditasmikan</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i data-lucide="book-open" class="h-4 w-4 text-slate-400"></i>
-                                </div>
-                                <input type="text" name="surat" required class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none" placeholder="Cth: Juz 30 atau Surat Al-Baqarah">
-                            </div>
-                        </div>
+            <form action="proses_input_hafalan.php" method="POST" class="p-6" autocomplete="off">
+                <input type="hidden" name="jenis" value="tasmi">
+                <input type="hidden" name="ayat_awal" value="1">
+                <input type="hidden" name="ayat_akhir" value="1">
 
-                        <!-- Predikat UI Baru (Radio Cards) -->
-                        <div>
-                            <label class="block text-xs font-bold tracking-wide text-slate-500 uppercase mb-2">Hasil Kelulusan (Predikat)</label>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <label class="radio-card cursor-pointer">
-                                    <input type="radio" name="predikat" value="A" required>
-                                    <div class="border-2 border-slate-200 text-purple-600 rounded-xl p-4 transition-all duration-200 hover:border-purple-200 hover:bg-purple-50">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <span class="font-bold text-lg">A</span>
-                                            <i data-lucide="medal" class="w-5 h-5"></i>
-                                        </div>
-                                        <p class="text-[10px] uppercase tracking-wider font-semibold text-subtitle text-slate-500">Lulus Sempurna</p>
-                                    </div>
-                                </label>
-                                <label class="radio-card cursor-pointer">
-                                    <input type="radio" name="predikat" value="B">
-                                    <div class="border-2 border-slate-200 text-amber-500 rounded-xl p-4 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <span class="font-bold text-lg">B</span>
-                                            <i data-lucide="check-square" class="w-5 h-5"></i>
-                                        </div>
-                                        <p class="text-[10px] uppercase tracking-wider font-semibold text-subtitle text-slate-500">Lulus dgn Catatan</p>
-                                    </div>
-                                </label>
-                                <label class="radio-card cursor-pointer">
-                                    <input type="radio" name="predikat" value="C">
-                                    <div class="border-2 border-slate-200 text-rose-500 rounded-xl p-4 transition-all duration-200 hover:border-rose-200 hover:bg-rose-50">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <span class="font-bold text-lg">C</span>
-                                            <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
-                                        </div>
-                                        <p class="text-[10px] uppercase tracking-wider font-semibold text-subtitle text-slate-500">Belum Lulus</p>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Catatan -->
-                        <div>
-                            <label class="block text-xs font-bold tracking-wide text-slate-500 uppercase mb-2">Catatan Penguji (Opsional)</label>
-                            <textarea name="catatan" rows="2" class="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none" placeholder="Cth: Lulus Mumtaz, siap lanjut ke Juz berikutnya..."></textarea>
+                <!-- BARIS 1: PILIH SANTRI & TANGGAL -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-5 mb-5">
+                    <div class="md:col-span-8">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nama Santri <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                            <select name="id_santri" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 focus:border-purple-600 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-purple-500/15 outline-none transition cursor-pointer">
+                                <option value="" disabled selected>-- Pilih Nama Santri Binaan --</option>
+                                <?php foreach ($santri_list as $s): ?>
+                                    <option value="<?= $s['id'] ?>">
+                                        <?= htmlspecialchars($s['nama']) ?> 
+                                        <?= !empty($s['nis']) ? '(NIS: ' . htmlspecialchars($s['nis']) . ')' : '' ?>
+                                        <?= !empty($s['nama_halaqah']) ? ' — [' . htmlspecialchars($s['nama_halaqah']) . ']' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
 
-                    <div class="mt-8 flex justify-end">
-                        <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition shadow-lg shadow-purple-200 flex items-center gap-2 focus:ring-4 focus:ring-purple-100">
-                            <i data-lucide="save" class="w-5 h-5"></i> Simpan Ujian Tasmi'
-                        </button>
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tanggal Ujian</label>
+                        <div class="relative">
+                            <i data-lucide="calendar-days" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                            <input type="date" name="tanggal" value="<?= date('Y-m-d') ?>" required
+                                   class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 focus:border-purple-600 rounded-xl text-sm font-medium text-slate-800 outline-none transition">
+                        </div>
                     </div>
-                </form>
-            </div>
-
-            <!-- SIDE INFO / TIPS -->
-            <div class="space-y-6">
-                <div class="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-6 text-white shadow-sm">
-                    <h4 class="font-semibold mb-2 flex items-center gap-2"><i data-lucide="info" class="w-5 h-5"></i> Standar Ujian Tasmi'</h4>
-                    <p class="text-sm text-purple-100 leading-relaxed mb-4">Tasmi' adalah tolok ukur penguasaan santri terhadap hafalan dalam skala besar (biasanya per Juz). Pastikan ujian berlangsung kondusif.</p>
-                    <ul class="text-xs text-purple-200 space-y-2">
-                        <li class="flex items-start gap-2"><i data-lucide="check" class="w-4 h-4 shrink-0"></i> Nilai A: Lulus Mumtaz (Sangat Baik). Siap menerima target hafalan juz baru.</li>
-                        <li class="flex items-start gap-2"><i data-lucide="check" class="w-4 h-4 shrink-0"></i> Nilai B: Lulus Jayyid (Baik). Lulus dengan syarat memperbaiki beberapa titik bacaan.</li>
-                        <li class="flex items-start gap-2"><i data-lucide="check" class="w-4 h-4 shrink-0"></i> Nilai C: Wajib mengulang Tasmi' di lain waktu.</li>
-                    </ul>
                 </div>
-            </div>
 
+                <!-- BARIS 2: JUZ, POJOK, DAN MATERI SURAT / JUZ -->
+                <div class="p-4 bg-slate-50/70 border border-slate-200/80 rounded-xl mb-5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-3">
+                        <i data-lucide="book-open" class="w-3.5 h-3.5 text-purple-600 inline mr-1"></i> Materi Ujian Tasmi' (Juz, Pojok & Keterangan Surat)
+                    </span>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+                        <div class="lg:col-span-3">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Juz <span class="text-rose-500">*</span></label>
+                            <select name="juz" id="inputJuz" required class="w-full px-3 py-2.5 bg-white border border-slate-300 focus:border-purple-600 rounded-xl text-sm font-semibold text-slate-800 outline-none cursor-pointer">
+                                <option value="">-- Pilih Juz --</option>
+                                <?php for ($j = 1; $j <= 30; $j++): ?>
+                                    <option value="<?= $j ?>" <?= $j === 30 ? 'selected' : '' ?>>Juz <?= $j ?></option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+
+                        <div class="lg:col-span-4">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pojok / Catatan Halaman (Opsional)</label>
+                            <input type="text" name="pojok" placeholder="Cth: Pojok 1 s.d 20" class="w-full px-3 py-2.5 bg-white border border-slate-300 focus:border-purple-600 rounded-xl text-sm font-medium text-slate-800 outline-none">
+                        </div>
+
+                        <div class="lg:col-span-5">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Judul / Surat Ujian <span class="text-rose-500">*</span></label>
+                            <input type="text" name="surat" required placeholder="Cth: Juz 30 Full / Surat Al-Baqarah" class="w-full px-3 py-2.5 bg-white border border-slate-300 focus:border-purple-600 rounded-xl text-sm font-medium text-slate-800 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BARIS 3: PREDIKAT & CATATAN -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                    <div class="lg:col-span-7">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Hasil Kelulusan Ujian <span class="text-rose-500">*</span></label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <label class="predikat-radio cursor-pointer">
+                                <input type="radio" name="predikat" value="A" checked required>
+                                <div class="border border-slate-200 rounded-xl p-3 bg-white hover:bg-slate-50 transition relative">
+                                    <div class="flex items-center justify-between mb-0.5">
+                                        <span class="text-sm font-extrabold">Predikat A</span>
+                                        <i data-lucide="check-circle-2" class="check-badge w-4 h-4 opacity-0 scale-75 transition"></i>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500">Mumtaz (Sempurna)</p>
+                                </div>
+                            </label>
+
+                            <label class="predikat-radio cursor-pointer">
+                                <input type="radio" name="predikat" value="B">
+                                <div class="border border-slate-200 rounded-xl p-3 bg-white hover:bg-slate-50 transition relative">
+                                    <div class="flex items-center justify-between mb-0.5">
+                                        <span class="text-sm font-extrabold">Predikat B</span>
+                                        <i data-lucide="check-circle-2" class="check-badge w-4 h-4 opacity-0 scale-75 transition"></i>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500">Jayyid (Lulus Catatan)</p>
+                                </div>
+                            </label>
+
+                            <label class="predikat-radio cursor-pointer">
+                                <input type="radio" name="predikat" value="C">
+                                <div class="border border-slate-200 rounded-xl p-3 bg-white hover:bg-slate-50 transition relative">
+                                    <div class="flex items-center justify-between mb-0.5">
+                                        <span class="text-sm font-extrabold">Predikat C</span>
+                                        <i data-lucide="check-circle-2" class="check-badge w-4 h-4 opacity-0 scale-75 transition"></i>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500">Belum Lulus / Ulang</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-5">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Catatan Penguji (Opsional)</label>
+                        <input type="text" name="catatan" placeholder="Cth: Siap lanjut ke juz berikutnya..." class="w-full px-3.5 py-4 bg-slate-50 border border-slate-300 focus:border-purple-600 rounded-xl text-xs font-medium text-slate-800 outline-none">
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-[11px] text-slate-400">Pastikan seluruh ketentuan ujian tasmi' telah terpenuhi.</span>
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-7 rounded-xl transition shadow-sm flex items-center gap-2 text-xs">
+                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Hasil Tasmi'
+                    </button>
+                </div>
+            </form>
         </div>
         <?php endif; ?>
 
         <!-- TABEL RIWAYAT HARI INI -->
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-                    <i data-lucide="clock" class="w-5 h-5 text-slate-400"></i> Riwayat Tasmi' Hari Ini
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="history" class="w-4 h-4 text-slate-500"></i> Riwayat Ujian Tasmi' Hari Ini
                 </h3>
-                <span class="bg-slate-200 text-slate-600 text-xs font-bold px-3 py-1 rounded-full"><?= count($riwayat_list) ?> Ujian</span>
+                <span class="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full"><?= count($riwayat_list) ?> Ujian</span>
             </div>
             
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                    <thead class="bg-white text-slate-400 text-xs uppercase tracking-wider border-b border-slate-200">
+                    <thead class="bg-slate-50/70 text-slate-500 text-[11px] font-semibold uppercase tracking-wider border-b border-slate-200">
                         <tr>
-                            <th class="py-4 px-6 font-semibold">Waktu</th>
-                            <th class="py-4 px-6 font-semibold">Nama Santri</th>
-                            <th class="py-4 px-6 font-semibold">Materi Tasmi'</th>
-                            <th class="py-4 px-6 font-semibold text-center">Predikat</th>
-                            <th class="py-4 px-6 font-semibold">Catatan Penguji</th>
+                            <th class="py-3 px-6 w-24">Waktu</th>
+                            <th class="py-3 px-4">Nama Santri</th>
+                            <th class="py-3 px-4">Juz & Pojok</th>
+                            <th class="py-3 px-4">Materi Ujian</th>
+                            <th class="py-3 px-4 text-center">Predikat</th>
+                            <th class="py-3 px-4">Catatan Penguji</th>
+                            <th class="py-3 px-6 text-right w-16">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="text-sm text-slate-600 divide-y divide-slate-100">
+                    <tbody class="text-xs text-slate-600 divide-y divide-slate-100">
                         <?php if (empty($riwayat_list)): ?>
                             <tr>
-                                <td colspan="5" class="py-12 text-center">
-                                    <div class="flex flex-col items-center justify-center text-slate-400">
-                                        <i data-lucide="inbox" class="w-10 h-10 mb-3 opacity-50"></i>
-                                        <p>Belum ada santri yang ujian tasmi' hari ini.</p>
-                                    </div>
+                                <td colspan="7" class="py-12 text-center text-slate-400">
+                                    <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                                    <p class="font-medium text-slate-600">Belum ada ujian tasmi' yang tercatat hari ini</p>
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($riwayat_list as $r): 
-                                // Setup Badge Warna
-                                if ($r['predikat'] == 'A') {
-                                    $badge = 'bg-emerald-100 text-emerald-700 border-emerald-200';
-                                } elseif ($r['predikat'] == 'B') {
-                                    $badge = 'bg-amber-100 text-amber-700 border-amber-200';
-                                } else {
-                                    $badge = 'bg-rose-100 text-rose-700 border-rose-200';
-                                }
+                                $badge = $r['predikat'] === 'A' ? 'bg-purple-50 text-purple-700 border-purple-200' : ($r['predikat'] === 'B' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200');
                             ?>
-                                <tr class="hover:bg-slate-50 transition">
-                                    <td class="py-4 px-6 text-xs text-slate-400 font-medium whitespace-nowrap">
-                                        <i data-lucide="clock-3" class="w-3 h-3 inline mr-1"></i> <?= date('H:i', strtotime($r['created_at'])) ?>
-                                    </td>
-                                    <td class="py-4 px-6 font-bold text-slate-800"><?= htmlspecialchars($r['nama_santri']) ?></td>
-                                    <td class="py-4 px-6 font-medium text-slate-700">
-                                        <?= htmlspecialchars($r['surat']) ?>
-                                    </td>
-                                    <td class="py-4 px-6 text-center">
-                                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg font-bold border <?= $badge ?>">
-                                            <?= $r['predikat'] ?>
-                                        </span>
-                                    </td>
-                                    <td class="py-4 px-6 text-xs text-slate-500 italic max-w-xs truncate" title="<?= htmlspecialchars($r['catatan'] ?? '') ?>">
-                                        <?= htmlspecialchars($r['catatan'] ?? '-') ?>
-                                    </td>
-                                </tr>
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="py-3.5 px-6 font-mono text-slate-400"><?= date('H:i', strtotime($r['created_at'])) ?></td>
+                                <td class="py-3.5 px-4 font-bold text-slate-900"><?= htmlspecialchars($r['nama_santri']) ?></td>
+                                <td class="py-3.5 px-4">
+                                    <?php if (!empty($r['juz'])): ?>
+                                        <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[11px]">Juz <?= (int)$r['juz'] ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($r['pojok'])): ?>
+                                        <span class="text-slate-600 ml-1"><?= htmlspecialchars($r['pojok']) ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="py-3.5 px-4 font-semibold text-slate-800"><?= htmlspecialchars($r['surat']) ?></td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg font-bold border <?= $badge ?>">
+                                        <?= htmlspecialchars($r['predikat']) ?>
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-slate-500 italic max-w-xs truncate"><?= htmlspecialchars($r['catatan'] ?: '-') ?></td>
+                                <td class="py-3.5 px-6 text-right">
+                                    <a href="input_tasmi.php?hapus=<?= $r['id'] ?>" onclick="return confirm('Hapus data ujian tasmi ini?')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg inline-flex transition">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </a>
+                                </td>
+                            </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
         </div>
+
     </div>
-    
+
+    <!-- TOAST PANDUAN MENGAMBANG -->
+    <div id="floatingPanduan" class="fixed bottom-5 right-5 z-50 max-w-sm bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700/80 p-4 transition-all duration-300 hidden">
+        <div class="flex items-start justify-between gap-3 mb-2">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="award" class="w-4 h-4"></i>
+                </div>
+                <h4 class="text-xs font-bold text-white">Panduan Kelulusan Tasmi'</h4>
+            </div>
+            <button type="button" onclick="tutupNotifPanduan()" class="text-slate-400 hover:text-white transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <ul class="text-[11px] text-slate-300 space-y-1 pl-1">
+            <li><b>Predikat A (Mumtaz):</b> Lulus sempurna, siap lanjut juz baru.</li>
+            <li><b>Predikat B (Jayyid):</b> Lulus dengan sedikit catatan.</li>
+            <li><b>Predikat C (Ulang):</b> Belum memenuhi standar, wajib ujian ulang.</li>
+        </ul>
+    </div>
+
     <script>
-        // Render semua icon lucide
         lucide.createIcons();
+        const toastEl = document.getElementById('floatingPanduan');
+        if (localStorage.getItem('hide_panduan_tasmi') !== '1') toastEl.classList.remove('hidden');
+        function tutupNotifPanduan() { toastEl.classList.add('hidden'); localStorage.setItem('hide_panduan_tasmi', '1'); }
+        function tampilkanNotifPanduan() { toastEl.classList.remove('hidden'); localStorage.removeItem('hide_panduan_tasmi'); }
     </script>
 </body>
 </html>
@@ -3707,7 +3924,7 @@ $riwayat_list = mysqli_fetch_all($riwayat_result, MYSQLI_ASSOC);
 
 ================================================================================
 FILE: input_ziyadah.php
-UKURAN: 33,306 bytes
+UKURAN: 33,623 bytes
 ================================================================================
 <?php
 session_start();
@@ -3734,21 +3951,26 @@ if (isset($_GET['hapus'])) {
     exit;
 }
 
-// Ambil daftar santri beserta nama lokalnya
+require_once 'includes/init_rbac.php';
+$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
+
+// Ambil daftar santri khusus lokal binaan Ustadz/Ustadzah yang login
 $santri_query = "SELECT s.id, s.nama, s.nis, h.nama_halaqah 
                  FROM santri s 
                  LEFT JOIN halaqah h ON s.id_halaqah = h.id 
+                 $where_binaan
                  ORDER BY s.nama ASC";
 $santri_result = mysqli_query($conn, $santri_query);
 $santri_list = mysqli_fetch_all($santri_result, MYSQLI_ASSOC);
 
-// Ambil riwayat ziyadah hari ini
+// Ambil riwayat ziyadah hari ini (khusus santri binaan)
 $jenis_halaman = 'ziyadah'; 
+$and_binaan = !empty($where_binaan) ? str_replace('WHERE', 'AND', $where_binaan) : '';
 $riwayat_query = "SELECT h.*, s.nama as nama_santri, hl.nama_halaqah 
                   FROM hafalan h 
                   JOIN santri s ON h.id_santri = s.id 
                   LEFT JOIN halaqah hl ON s.id_halaqah = hl.id
-                  WHERE h.tanggal = CURDATE() AND h.jenis = '$jenis_halaman' 
+                  WHERE h.tanggal = CURDATE() AND h.jenis = '$jenis_halaman' $and_binaan
                   ORDER BY h.id DESC";
 $riwayat_result = mysqli_query($conn, $riwayat_query);
 $riwayat_list = mysqli_fetch_all($riwayat_result, MYSQLI_ASSOC);
@@ -7538,84 +7760,131 @@ $Nama_Hari_Indo = [
 
 ================================================================================
 FILE: progres_santri.php
-UKURAN: 15,302 bytes
+UKURAN: 21,255 bytes
 ================================================================================
 <?php
 session_start();
 require 'config/database.php';
 
-// 🔒 Keamanan: Hanya Ustadz (dan Pimpinan jika mau)
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'])) {
     header("Location: login.php");
     exit;
 }
 
-$id_user = (int) $_SESSION['user_id'];
-$role = $_SESSION['role'];
+$id_ustadz = (int) $_SESSION['user_id'];
+$role      = $_SESSION['role'];
+$nama_user = $_SESSION['nama_lengkap'] ?? '';
+$is_pengelola_penuh = in_array($role, ['operator', 'pimpinan']);
 
-// 1. Ambil daftar santri
-// Untuk sementara, tampilkan semua santri di dropdown
-// (Nanti bisa difilter berdasarkan halaqah jika tabel halaqah sudah terisi)
-$santri_list_query = "SELECT id, nama FROM santri ORDER BY nama ASC";
-$santri_list = mysqli_fetch_all(mysqli_query($conn, $santri_list_query), MYSQLI_ASSOC);
+// 1. Pastikan kolom juz & pojok tersedia di tabel hafalan agar tidak pernah error
+$cek_juz = mysqli_query($conn, "SHOW COLUMNS FROM hafalan LIKE 'juz'");
+if ($cek_juz && mysqli_num_rows($cek_juz) === 0) {
+    mysqli_query($conn, "ALTER TABLE hafalan ADD COLUMN `juz` INT(11) DEFAULT NULL AFTER `jenis`");
+    mysqli_query($conn, "ALTER TABLE hafalan ADD COLUMN `pojok` VARCHAR(30) DEFAULT NULL AFTER `juz`");
+}
 
-// 2. Tentukan Santri yang Dipilih (Default: Santri pertama di list)
-$id_santri_pilih = isset($_GET['id_santri']) ? (int) $_GET['id_santri'] : ($santri_list[0]['id'] ?? 0);
-$santri_dipilih = null;
-$chart_labels = [];
-$chart_ziyadah = [];
-$chart_murajaah = [];
-$stat = ['total_ayat' => 0, 'total_murajaah' => 0, 'total_tasmi' => 0];
-$riwayat_list = [];
+// 2. Filter santri sesuai lokal binaan jika yang login adalah Ustadz/Ustadzah
+$where_santri = "";
+$tampil_semua = isset($_GET['semua']) && $_GET['semua'] == '1';
 
-if ($id_santri_pilih > 0) {
-    // Ambil Detail Santri
-    $santri_dipilih = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM santri WHERE id = $id_santri_pilih"));
+if (!$is_pengelola_penuh && !$tampil_semua) {
+    $u_info = mysqli_fetch_assoc(mysqli_query($conn, "SELECT id_halaqah, nama_lengkap FROM users WHERE id = $id_ustadz"));
+    $id_h_user = (int) ($u_info['id_halaqah'] ?? 0);
+    $nm_esc    = mysqli_real_escape_string($conn, trim($u_info['nama_lengkap'] ?? $nama_user));
     
-    // Ambil Target Terkini
-    $target_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT target_ayat_per_hari, keterangan FROM target_hafalan WHERE id_santri = $id_santri_pilih ORDER BY id DESC LIMIT 1"));
-    $target_ayat = $target_data ? $target_data['target_ayat_per_hari'] : 0;
-    $target_ket = $target_data ? $target_data['keterangan'] : 'Belum ada target';
+    $q_lokal_ust = mysqli_query($conn, "SELECT id FROM halaqah WHERE id_ustadz = $id_ustadz OR id = $id_h_user OR (nama_pengajar IS NOT NULL AND nama_pengajar != '' AND LOWER(nama_pengajar) = LOWER('$nm_esc'))");
+    $lokal_ids = [];
+    if ($q_lokal_ust) {
+        while ($lk = mysqli_fetch_assoc($q_lokal_ust)) {
+            $lokal_ids[] = (int)$lk['id'];
+        }
+    }
 
-    $bulan_ini = date('Y-m');
+    if (!empty($lokal_ids)) {
+        $list_id_str = implode(',', $lokal_ids);
+        $where_santri = "WHERE (s.id_halaqah IN ($list_id_str) OR s.id_ustadz = $id_ustadz)";
+    } else {
+        // Jika ustadz belum ditautkan ke lokal manapun, tampilkan santri yang pernah diinputnya atau semua santri sebagai fallback
+        $where_santri = "";
+    }
+}
 
-    // Statistik Bulan Ini (Khusus Santri Ini)
-    $stat_query = "SELECT 
-                    COALESCE(SUM(CASE WHEN jenis = 'ziyadah' THEN jumlah_ayat ELSE 0 END), 0) as total_ayat,
-                    COALESCE(SUM(CASE WHEN jenis = 'murajaah' THEN 1 ELSE 0 END), 0) as total_murajaah,
-                    COALESCE(SUM(CASE WHEN jenis = 'tasmi' THEN 1 ELSE 0 END), 0) as total_tasmi
-                  FROM hafalan 
-                  WHERE id_santri = $id_santri_pilih AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan_ini'";
-    $stat = mysqli_fetch_assoc(mysqli_query($conn, $stat_query));
+$q_santri = "SELECT s.*, h.nama_halaqah, h.keterangan as ket_lokal 
+             FROM santri s 
+             LEFT JOIN halaqah h ON s.id_halaqah = h.id 
+             $where_santri 
+             ORDER BY s.nama ASC";
+$res_santri  = mysqli_query($conn, $q_santri);
+$santri_list = $res_santri ? mysqli_fetch_all($res_santri, MYSQLI_ASSOC) : [];
 
-    // Grafik Tren 6 Bulan (Khusus Santri Ini)
+// 3. Perbaikan Pemilihan Santri Aktif (Selalu Fallback ke Santri Pertama jika ID tidak cocok/kosong)
+$id_santri_pilih = isset($_GET['id_santri']) ? (int) $_GET['id_santri'] : 0;
+$santri_aktif = null;
+
+if (!empty($santri_list)) {
+    foreach ($santri_list as $s) {
+        if ((int)$s['id'] === $id_santri_pilih) {
+            $santri_aktif = $s;
+            break;
+        }
+    }
+    // Jika ID di URL kosong atau tidak ditemukan di daftar, otomatis pilih santri urutan pertama!
+    if (!$santri_aktif) {
+        $santri_aktif = $santri_list[0];
+        $id_santri_pilih = (int) $santri_aktif['id'];
+    }
+}
+
+$riwayat_hafalan = [];
+$chart_labels    = [];
+$chart_ziyadah   = [];
+$stat            = ['ziyadah' => 0, 'murajaah' => 0, 'tasmi' => 0];
+$target_aktif    = null;
+
+if ($santri_aktif) {
+    $id_s = (int) $santri_aktif['id'];
+    
+    // Statistik Total Santri Ini
+    $q_st = mysqli_query($conn, "SELECT jenis, COUNT(*) as jml, COALESCE(SUM(jumlah_ayat), 0) as tot_ayat FROM hafalan WHERE id_santri = $id_s GROUP BY jenis");
+    if ($q_st) {
+        while ($st = mysqli_fetch_assoc($q_st)) {
+            if ($st['jenis'] === 'ziyadah')  $stat['ziyadah']  = (int)$st['tot_ayat'];
+            if ($st['jenis'] === 'murajaah') $stat['murajaah'] = (int)$st['jml'];
+            if ($st['jenis'] === 'tasmi')    $stat['tasmi']    = (int)$st['jml'];
+        }
+    }
+
+    // Target Hafalan Santri Ini
+    $q_tgt = mysqli_query($conn, "SELECT * FROM target_hafalan WHERE id_santri = $id_s ORDER BY id DESC LIMIT 1");
+    if ($q_tgt && mysqli_num_rows($q_tgt) > 0) {
+        $target_aktif = mysqli_fetch_assoc($q_tgt);
+    }
+
+    // Riwayat Lengkap Setoran
+    $q_riw = mysqli_query($conn, "SELECT h.*, u.nama_lengkap as nama_ustadz FROM hafalan h LEFT JOIN users u ON h.id_ustadz = u.id WHERE h.id_santri = $id_s ORDER BY h.tanggal DESC, h.id DESC");
+    if ($q_riw) {
+        $riwayat_hafalan = mysqli_fetch_all($q_riw, MYSQLI_ASSOC);
+    }
+
+    // Grafik 6 Bulan Terakhir
     for ($i = 5; $i >= 0; $i--) {
         $bulan = date('Y-m', strtotime("-$i months"));
         $chart_labels[] = date('M Y', strtotime("-$i months"));
-        $query = "SELECT 
-                    COALESCE(SUM(CASE WHEN jenis = 'ziyadah' THEN jumlah_ayat ELSE 0 END), 0) as z,
-                    COALESCE(SUM(CASE WHEN jenis = 'murajaah' THEN 1 ELSE 0 END), 0) as m
-                  FROM hafalan WHERE id_santri = $id_santri_pilih AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan'";
-        $result = mysqli_query($conn, $query);
-        $data = mysqli_fetch_assoc($result);
-        $chart_ziyadah[] = (int) $data['z'];
-        $chart_murajaah[] = (int) $data['m'];
+        $q_z = mysqli_query($conn, "SELECT COALESCE(SUM(jumlah_ayat), 0) as z FROM hafalan WHERE id_santri = $id_s AND jenis = 'ziyadah' AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan'");
+        $chart_ziyadah[] = $q_z ? (int) mysqli_fetch_assoc($q_z)['z'] : 0;
     }
-
-    // Riwayat 10 Terakhir
-    $riwayat_query = "SELECT * FROM hafalan WHERE id_santri = $id_santri_pilih ORDER BY tanggal DESC, id DESC LIMIT 10";
-    $riwayat_list = mysqli_fetch_all(mysqli_query($conn, $riwayat_query), MYSQLI_ASSOC);
 }
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Progres Detail Santri - Surau Tahfizh Firdaus</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Progres Santri - Surau Tahfizh Firdaus</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800">
@@ -7623,145 +7892,193 @@ if ($id_santri_pilih > 0) {
     <?php include 'includes/sidebar.php'; ?>
 
     <div class="ml-64 p-8">
-        <div class="mb-8">
-            <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                <i data-lucide="user-search" class="w-7 h-7 text-indigo-600"></i> Analisis Progres Individual Santri
-            </h1>
-            <p class="text-sm text-slate-500 mt-1">Pilih santri untuk melihat detail perkembangan, grafik tren, dan riwayat setoran.</p>
-        </div>
+        
+        <!-- Header & Filter Santri -->
+        <div class="flex flex-wrap justify-between items-end gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                    <div class="p-2.5 bg-sky-100 rounded-xl"><i data-lucide="line-chart" class="w-6 h-6 text-sky-600"></i></div>
+                    Analisis Progres Santri
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">Pantau grafik pertumbuhan hafalan, rekam jejak juz, dan riwayat setoran santri.</p>
+            </div>
 
-        <!-- SEARCH / DROPDOWN SANTRI -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
-            <form action="progres_santri.php" method="GET" class="flex items-end gap-4">
-                <div class="flex-1">
-                    <label class="block text-xs font-medium text-slate-600 mb-1">Cari / Pilih Nama Santri</label>
-                    <select name="id_santri" onchange="this.form.submit()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <option value="">-- Pilih Santri --</option>
+            <div class="flex flex-wrap items-center gap-2.5">
+                <?php if (!$is_pengelola_penuh): ?>
+                    <a href="progres_santri.php?semua=<?= $tampil_semua ? '0' : '1' ?>" 
+                       class="px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition <?= $tampil_semua ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50' ?>">
+                        <?= $tampil_semua ? 'Filter Lokal Binaan Saya' : 'Tampilkan Semua Santri' ?>
+                    </a>
+                <?php endif; ?>
+
+                <form method="GET" class="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm flex items-center gap-3">
+                    <?php if ($tampil_semua): ?>
+                        <input type="hidden" name="semua" value="1">
+                    <?php endif; ?>
+                    <label class="text-xs font-bold text-slate-400 uppercase">Pilih Santri:</label>
+                    <select name="id_santri" onchange="this.form.submit()" class="text-xs font-bold text-slate-800 outline-none cursor-pointer">
                         <?php foreach ($santri_list as $s): ?>
-                            <option value="<?= $s['id'] ?>" <?= $s['id'] == $id_santri_pilih ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($s['nama']) ?>
+                            <option value="<?= $s['id'] ?>" <?= (int)$s['id'] === $id_santri_pilih ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($s['nama']) ?> <?= !empty($s['nama_halaqah']) ? '[' . htmlspecialchars($s['nama_halaqah']) . ']' : '' ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
-                </div>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition flex items-center gap-2">
-                    <i data-lucide="search" class="w-4 h-4"></i> Tampilkan
-                </button>
-            </form>
+                </form>
+            </div>
         </div>
 
-        <?php if (!$santri_dipilih): ?>
-            <div class="bg-amber-50 border-l-4 border-amber-500 text-amber-800 p-6 rounded-lg text-sm">
-                Silakan pilih nama santri di atas untuk melihat detail progresnya.
+        <?php if (!$santri_aktif): ?>
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 p-6 rounded-2xl flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600"></i>
+                    <span class="text-sm font-medium">Tidak ada data santri ditemukan di lokal binaan Anda.</span>
+                </div>
+                <a href="progres_santri.php?semua=1" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
+                    Lihat Seluruh Santri Surau
+                </a>
             </div>
         <?php else: ?>
 
-        <!-- INFO SANTRI & TARGET -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm md:col-span-2">
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center">
-                        <i data-lucide="user" class="w-7 h-7 text-indigo-600"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900"><?= htmlspecialchars($santri_dipilih['nama']) ?></h2>
-                        <p class="text-sm text-slate-500">NIS: <?= htmlspecialchars($santri_dipilih['nis']) ?> • <?= $santri_dipilih['jenis_kelamin'] == 'L' ? 'Laki-laki' : 'Perempuan' ?></p>
-                    </div>
+        <!-- BANNER PROFIL SANTRI AKTIF & PINTASAN CEPAT -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 mb-6 shadow-sm flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl <?= $santri_aktif['jenis_kelamin'] === 'L' ? 'bg-blue-600' : 'bg-pink-600' ?> text-white font-extrabold text-xl flex items-center justify-center shrink-0 shadow-sm">
+                    <?= strtoupper(substr($santri_aktif['nama'], 0, 1)) ?>
                 </div>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Target Hafalan Saat Ini</p>
-                <p class="text-2xl font-bold text-indigo-600"><?= $target_ayat ?> <span class="text-sm font-normal text-slate-500">Ayat/Hari</span></p>
-                <p class="text-xs text-slate-500 mt-1 truncate" title="<?= htmlspecialchars($target_ket) ?>"><?= htmlspecialchars($target_ket) ?></p>
-            </div>
-        </div>
-
-        <!-- STATISTIK BULAN INI -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ziyadah Bulan Ini</p>
-                    <div class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                        <i data-lucide="book-plus" class="w-4 h-4 text-emerald-600"></i>
-                    </div>
-                </div>
-                <p class="text-3xl font-bold text-slate-900"><?= $stat['total_ayat'] ?></p>
-                <p class="text-xs text-slate-500 mt-1">Total ayat baru</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Muraja'ah Bulan Ini</p>
-                    <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <i data-lucide="refresh-cw" class="w-4 h-4 text-blue-600"></i>
-                    </div>
-                </div>
-                <p class="text-3xl font-bold text-slate-900"><?= $stat['total_murajaah'] ?></p>
-                <p class="text-xs text-slate-500 mt-1"> Kali pengulangan</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tasmi' Bulan Ini</p>
-                    <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                        <i data-lucide="award" class="w-4 h-4 text-purple-600"></i>
-                    </div>
-                </div>
-                <p class="text-3xl font-bold text-slate-900"><?= $stat['total_tasmi'] ?></p>
-                <p class="text-xs text-slate-500 mt-1"> Kali ujian juz</p>
-            </div>
-        </div>
-
-        <!-- GRAFIK TREN INDIVIDUAL -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6">
-            <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-lg font-semibold text-slate-900">Tren Hafalan <?= htmlspecialchars($santri_dipilih['nama']) ?></h2>
-                    <p class="text-sm text-slate-500">Perbandingan Ziyadah dan Muraja'ah 6 bulan terakhir</p>
-                </div>
-                <div class="flex gap-4 text-xs">
-                    <div class="flex items-center gap-2"><div class="w-3 h-3 bg-emerald-500 rounded-full"></div><span class="text-slate-600">Ziyadah (Ayat)</span></div>
-                    <div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 rounded-full"></div><span class="text-slate-600">Muraja'ah (Kali)</span></div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-lg font-extrabold text-slate-900"><?= htmlspecialchars($santri_aktif['nama']) ?></h2>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <?= htmlspecialchars($santri_aktif['nama_halaqah'] ?: 'Belum Ada Lokal') ?>
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">
+                        NIS: <b><?= htmlspecialchars($santri_aktif['nis'] ?: '-') ?></b> • 
+                        Wali: <b><?= htmlspecialchars($santri_aktif['nama_ortu'] ?: '-') ?></b>
+                        <?php if ($target_aktif): ?>
+                            • Target Aktif: <b class="text-teal-600"><?= htmlspecialchars($target_aktif['target_surat'] ?: $target_aktif['target_ayat_per_hari'] . ' Ayat/Hari') ?></b>
+                        <?php endif; ?>
+                    </p>
                 </div>
             </div>
-            <div style="height: 300px;">
-                <canvas id="santriChart"></canvas>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="input_ziyadah.php" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="book-plus" class="w-4 h-4"></i> Input Ziyadah
+                </a>
+                <a href="rapor_santri.php?id_santri=<?= $santri_aktif['id'] ?>" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="printer" class="w-4 h-4"></i> Lihat Rapor
+                </a>
             </div>
         </div>
 
-        <!-- RIWAYAT SETORAN -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <div class="p-6 border-b border-slate-200">
-                <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="history" class="w-5 h-5 text-slate-400"></i> 10 Setoran Terakhir
-                </h3>
+        <!-- KARTU STATISTIK -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Total Ziyadah</p>
+                    <p class="text-3xl font-black text-slate-900 mt-1"><?= $stat['ziyadah'] ?> <span class="text-sm font-normal text-slate-500">Ayat</span></p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Akumulasi ayat baru dihafal</p>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center"><i data-lucide="book-plus" class="w-6 h-6"></i></div>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-blue-600 uppercase tracking-wider">Total Muraja'ah</p>
+                    <p class="text-3xl font-black text-slate-900 mt-1"><?= $stat['murajaah'] ?> <span class="text-sm font-normal text-slate-500">Sesi</span></p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Frekuensi pengulangan hafalan</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center"><i data-lucide="refresh-cw" class="w-6 h-6"></i></div>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-purple-600 uppercase tracking-wider">Total Tasmi'</p>
+                    <p class="text-3xl font-black text-slate-900 mt-1"><?= $stat['tasmi'] ?> <span class="text-sm font-normal text-slate-500">Ujian</span></p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Sesi ujian sekali duduk</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center"><i data-lucide="award" class="w-6 h-6"></i></div>
+            </div>
+        </div>
+
+        <!-- GRAFIK TREN -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6">
+            <h2 class="text-sm font-bold text-slate-900 mb-1">Grafik Pertumbuhan Ziyadah (6 Bulan Terakhir)</h2>
+            <p class="text-xs text-slate-500 mb-5">Jumlah ayat baru yang disetorkan oleh <?= htmlspecialchars($santri_aktif['nama']) ?> setiap bulan</p>
+            <div style="height: 260px;">
+                <canvas id="grafikProgres"></canvas>
+            </div>
+        </div>
+
+        <!-- TABEL RIWAYAT LENGKAP -->
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Riwayat Setoran & Ujian Lengkap</h3>
+                    <p class="text-xs text-slate-500">Total <?= count($riwayat_hafalan) ?> aktivitas tercatat</p>
+                </div>
+                <select id="filterJenisProgres" onchange="filterTabelProgres()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer">
+                    <option value="ALL">Semua Jenis (Ziyadah, Muraja'ah, Tasmi')</option>
+                    <option value="ziyadah">Ziyadah Saja</option>
+                    <option value="murajaah">Muraja'ah Saja</option>
+                    <option value="tasmi">Tasmi' Saja</option>
+                </select>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50/70 text-slate-500 text-[11px] font-semibold uppercase tracking-wider border-b border-slate-200">
                         <tr>
-                            <th class="py-3 px-6 font-medium">Tanggal</th>
-                            <th class="py-3 px-6 font-medium">Jenis</th>
-                            <th class="py-3 px-6 font-medium">Surat / Juz</th>
-                            <th class="py-3 px-6 font-medium">Ayat</th>
-                            <th class="py-3 px-6 font-medium">Predikat</th>
-                            <th class="py-3 px-6 font-medium">Catatan</th>
+                            <th class="py-3.5 px-6">Tanggal</th>
+                            <th class="py-3.5 px-4">Jenis</th>
+                            <th class="py-3.5 px-4">Juz & Pojok</th>
+                            <th class="py-3.5 px-4">Surat & Ayat</th>
+                            <th class="py-3.5 px-4 text-center">Jml Ayat</th>
+                            <th class="py-3.5 px-4 text-center">Predikat</th>
+                            <th class="py-3.5 px-4">Catatan Evaluasi</th>
+                            <th class="py-3.5 px-6">Penguji</th>
                         </tr>
                     </thead>
-                    <tbody class="text-sm text-slate-600 divide-y divide-slate-100">
-                        <?php if (empty($riwayat_list)): ?>
-                            <tr><td colspan="6" class="py-8 text-center text-slate-400">Belum ada riwayat setoran untuk santri ini.</td></tr>
+                    <tbody class="text-xs divide-y divide-slate-100">
+                        <?php if (empty($riwayat_hafalan)): ?>
+                            <tr>
+                                <td colspan="8" class="py-12 text-center text-slate-400">
+                                    <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                                    <p class="font-medium text-slate-600">Belum ada riwayat setoran hafalan untuk santri ini.</p>
+                                </td>
+                            </tr>
                         <?php else: ?>
-                            <?php foreach ($riwayat_list as $r): 
-                                $badge = $r['jenis'] == 'ziyadah' ? 'bg-emerald-100 text-emerald-700' : ($r['jenis'] == 'murajaah' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700');
-                                $predikat = $r['predikat'] == 'A' ? 'text-emerald-600 font-semibold' : ($r['predikat'] == 'B' ? 'text-amber-600 font-semibold' : 'text-red-600 font-semibold');
+                            <?php foreach ($riwayat_hafalan as $r): 
+                                $badge = $r['jenis'] === 'ziyadah' ? 'bg-emerald-100 text-emerald-700' : ($r['jenis'] === 'murajaah' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700');
+                                $p_bg  = $r['predikat'] === 'A' ? 'bg-emerald-500 text-white' : ($r['predikat'] === 'B' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white');
                             ?>
-                                <tr class="hover:bg-slate-50">
-                                    <td class="py-4 px-6"><?= date('d M Y', strtotime($r['tanggal'])) ?></td>
-                                    <td class="py-4 px-6"><span class="px-2 py-1 rounded text-xs <?= $badge ?>"><?= strtoupper($r['jenis']) ?></span></td>
-                                    <td class="py-4 px-6 font-medium text-slate-900"><?= htmlspecialchars($r['surat']) ?></td>
-                                    <td class="py-4 px-6"><?= $r['ayat_awal'] ?> - <?= $r['ayat_akhir'] ?></td>
-                                    <td class="py-4 px-6 <?= $predikat ?>"><?= $r['predikat'] ?></td>
-                                    <td class="py-4 px-6 text-xs text-slate-500"><?= htmlspecialchars($r['catatan'] ?? '-') ?></td>
-                                </tr>
+                            <tr class="baris-progres hover:bg-slate-50 transition" data-jenis="<?= htmlspecialchars($r['jenis']) ?>">
+                                <td class="py-3.5 px-6 font-medium text-slate-600"><?= date('d M Y', strtotime($r['tanggal'])) ?></td>
+                                <td class="py-3.5 px-4"><span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase <?= $badge ?>"><?= htmlspecialchars($r['jenis']) ?></span></td>
+                                <td class="py-3.5 px-4">
+                                    <?php if (!empty($r['juz'])): ?>
+                                        <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold">Juz <?= (int)$r['juz'] ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($r['pojok'])): ?>
+                                        <span class="text-slate-600 ml-1 font-medium"><?= htmlspecialchars($r['pojok']) ?></span>
+                                    <?php endif; ?>
+                                    <?php if (empty($r['juz']) && empty($r['pojok'])): ?>
+                                        <span class="text-slate-400">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="py-3.5 px-4 font-bold text-slate-800">
+                                    <?= htmlspecialchars($r['surat']) ?> 
+                                    <?php if ($r['jenis'] !== 'tasmi'): ?>
+                                        <span class="font-normal text-slate-500">: Ayat <?= $r['ayat_awal'] ?>–<?= $r['ayat_akhir'] ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="py-3.5 px-4 text-center font-semibold text-slate-700">
+                                    <?= $r['jenis'] === 'tasmi' ? '1 Sesi' : ((int)$r['jumlah_ayat'] . ' Ayat') ?>
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg font-bold <?= $p_bg ?>"><?= htmlspecialchars($r['predikat']) ?></span>
+                                </td>
+                                <td class="py-3.5 px-4 text-slate-500 italic"><?= htmlspecialchars($r['catatan'] ?: '-') ?></td>
+                                <td class="py-3.5 px-6 text-slate-500 font-medium"><?= htmlspecialchars($r['nama_ustadz'] ?? 'Ustadz/ah') ?></td>
+                            </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
@@ -7770,45 +8087,48 @@ if ($id_santri_pilih > 0) {
         </div>
 
         <?php endif; ?>
-
     </div>
 
-    <?php if ($santri_dipilih): ?>
     <script>
-        const ctx = document.getElementById('santriChart').getContext('2d');
+        lucide.createIcons();
+
+        function filterTabelProgres() {
+            const jenis = document.getElementById('filterJenisProgres').value;
+            document.querySelectorAll('.baris-progres').forEach(tr => {
+                tr.style.display = (jenis === 'ALL' || tr.dataset.jenis === jenis) ? '' : 'none';
+            });
+        }
+
+        <?php if ($santri_aktif): ?>
+        const ctx = document.getElementById('grafikProgres').getContext('2d');
         new Chart(ctx, {
             type: 'line',
             data: {
                 labels: <?= json_encode($chart_labels) ?>,
-                datasets: [
-                    {
-                        label: 'Ziyadah (Ayat)',
-                        data: <?= json_encode($chart_ziyadah) ?>,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        borderWidth: 2, tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor: '#10b981'
-                    },
-                    {
-                        label: "Muraja'ah (Kali)",
-                        data: <?= json_encode($chart_murajaah) ?>,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderWidth: 2, tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor: '#3b82f6'
-                    }
-                ]
+                datasets: [{
+                    label: 'Ziyadah (Ayat)',
+                    data: <?= json_encode($chart_ziyadah) ?>,
+                    borderColor: '#0284c7',
+                    backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                    borderWidth: 2.5,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#0284c7'
+                }]
             },
             options: {
-                responsive: true, maintainAspectRatio: false,
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#64748b' } },
-                    x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#64748b' } }
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    x: { grid: { display: false } }
                 }
             }
         });
+        <?php endif; ?>
     </script>
-    <?php endif; ?>
-    <script>lucide.createIcons();</script>
 </body>
 </html>
 
@@ -8975,7 +9295,7 @@ $tanggal_tampil    = !empty($header_utama['tanggal_cetak']) ? $header_utama['tan
 
 ================================================================================
 FILE: rekap_bulanan.php
-UKURAN: 13,431 bytes
+UKURAN: 16,342 bytes
 ================================================================================
 <?php
 session_start();
@@ -8986,96 +9306,122 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'u
     exit;
 }
 
-$bulan_dipilih = isset($_GET['bulan']) ? $_GET['bulan'] : date('m');
-$tahun_dipilih = isset($_GET['tahun']) ? $_GET['tahun'] : date('Y');
-$periode = $tahun_dipilih . '-' . $bulan_dipilih;
+$bulan_dipilih = isset($_GET['bulan']) ? str_pad((int)$_GET['bulan'], 2, '0', STR_PAD_LEFT) : date('m');
+$tahun_dipilih = isset($_GET['tahun']) ? (int)$_GET['tahun'] : (int)date('Y');
+$id_lokal      = isset($_GET['id_lokal']) ? (int)$_GET['id_lokal'] : 0;
+$periode       = $tahun_dipilih . '-' . $bulan_dipilih;
 
-$nama_bulan = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
+$nama_bulan = [
+    '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+    '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+    '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+];
 
-// Hitung total hari kerja di bulan tersebut (asumsi 26 hari)
-$total_hari_kerja = 26;
+// Ambil daftar lokal untuk filter
+$lokal_list = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama_halaqah FROM halaqah ORDER BY id ASC"), MYSQLI_ASSOC);
+$nama_lokal_terpilih = "Semua Kelas / Lokal";
+foreach ($lokal_list as $lk) {
+    if ((int)$lk['id'] === $id_lokal) {
+        $nama_lokal_terpilih = $lk['nama_halaqah'];
+        break;
+    }
+}
 
-// Query lengkap: hafalan + kehadiran/absensi
-$sql_santri = "SELECT s.id, s.nama, s.nis,
-              COALESCE(SUM(CASE WHEN h.jenis = 'ziyadah' THEN h.jumlah_ayat ELSE 0 END), 0) as total_ayat,
-              COALESCE(SUM(CASE WHEN h.jenis = 'murajaah' THEN 1 ELSE 0 END), 0) as total_murajaah,
-              COALESCE(SUM(CASE WHEN h.jenis = 'tasmi' THEN 1 ELSE 0 END), 0) as total_tasmi,
-              COALESCE(SUM(CASE WHEN a.status = 'Hadir' OR k.status = 'H' THEN 1 ELSE 0 END), 0) as hadir,
-              COALESCE(SUM(CASE WHEN a.status = 'Sakit' OR k.status = 'S' THEN 1 ELSE 0 END), 0) as sakit,
-              COALESCE(SUM(CASE WHEN a.status = 'Izin' OR k.status = 'I' THEN 1 ELSE 0 END), 0) as izin,
-              COALESCE(SUM(CASE WHEN a.status = 'Alfa' OR k.status = 'A' THEN 1 ELSE 0 END), 0) as alpa
-              FROM santri s 
-              LEFT JOIN hafalan h ON s.id = h.id_santri AND DATE_FORMAT(h.tanggal, '%Y-%m') = '$periode'
-              LEFT JOIN absensi a ON s.id = a.id_santri AND DATE_FORMAT(a.tanggal, '%Y-%m') = '$periode'
-              LEFT JOIN kehadiran k ON s.id = k.id_santri AND DATE_FORMAT(k.tanggal, '%Y-%m') = '$periode'
-              GROUP BY s.id 
-              ORDER BY s.nama ASC";
+$where_lokal = $id_lokal > 0 ? "WHERE s.id_halaqah = $id_lokal" : "";
+
+// Query akurat menggunakan Subquery terpisah untuk Hafalan (h) dan Absensi (a)
+// agar TIDAK terjadi duplikasi perkalian baris (Cartesian Product)
+$sql_santri = "SELECT 
+                  s.id, s.nama, s.nis, hl.nama_halaqah,
+                  COALESCE(h.total_ayat, 0) as total_ayat,
+                  COALESCE(h.total_murajaah, 0) as total_murajaah,
+                  COALESCE(h.total_tasmi, 0) as total_tasmi,
+                  COALESCE(a.hadir, 0) as hadir,
+                  COALESCE(a.sakit, 0) as sakit,
+                  COALESCE(a.izin, 0) as izin,
+                  COALESCE(a.alpa, 0) as alpa
+               FROM santri s
+               LEFT JOIN halaqah hl ON s.id_halaqah = hl.id
+               LEFT JOIN (
+                   SELECT id_santri,
+                          SUM(CASE WHEN jenis = 'ziyadah' THEN jumlah_ayat ELSE 0 END) as total_ayat,
+                          SUM(CASE WHEN jenis = 'murajaah' THEN 1 ELSE 0 END) as total_murajaah,
+                          SUM(CASE WHEN jenis = 'tasmi' THEN 1 ELSE 0 END) as total_tasmi
+                   FROM hafalan
+                   WHERE DATE_FORMAT(tanggal, '%Y-%m') = '$periode'
+                   GROUP BY id_santri
+               ) h ON s.id = h.id_santri
+               LEFT JOIN (
+                   SELECT id_santri,
+                          SUM(CASE WHEN UPPER(LEFT(TRIM(status), 1)) = 'H' THEN 1 ELSE 0 END) as hadir,
+                          SUM(CASE WHEN UPPER(LEFT(TRIM(status), 1)) = 'S' THEN 1 ELSE 0 END) as sakit,
+                          SUM(CASE WHEN UPPER(LEFT(TRIM(status), 1)) = 'I' THEN 1 ELSE 0 END) as izin,
+                          SUM(CASE WHEN UPPER(LEFT(TRIM(status), 1)) = 'A' THEN 1 ELSE 0 END) as alpa
+                   FROM absensi
+                   WHERE DATE_FORMAT(tanggal, '%Y-%m') = '$periode'
+                   GROUP BY id_santri
+               ) a ON s.id = a.id_santri
+               $where_lokal
+               ORDER BY s.nama ASC";
+
 $data_santri = mysqli_fetch_all(mysqli_query($conn, $sql_santri), MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Rekap Bulanan - Surau Tahfizh Firdaus</title>
+    <title>Rekap Bulanan (<?= $nama_bulan[$bulan_dipilih] ?> <?= $tahun_dipilih ?>) - Surau Tahfizh Firdaus</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
         
         @media print {
             @page {
                 size: A4 landscape;
-                margin: 1.5cm 2cm 1.5cm 2cm;
+                margin: 1.2cm 1.5cm;
             }
             .no-print, aside, nav, .sidebar, script, button { display: none !important; }
             .ml-64 { margin-left: 0 !important; padding: 0 !important; }
             body { background: white !important; margin: 0 !important; padding: 0 !important; }
-            .shadow-sm, .shadow, .rounded-xl { box-shadow: none !important; border-radius: 0 !important; }
+            .shadow-sm, .shadow, .rounded-xl, .rounded-2xl { box-shadow: none !important; border-radius: 0 !important; border: none !important; }
             
             .kop-surat {
                 text-align: center !important;
                 border-bottom: 3px double #000 !important;
-                padding-bottom: 15px !important;
-                margin-bottom: 30px !important;
+                padding-bottom: 12px !important;
+                margin-bottom: 20px !important;
             }
             
             .tabel-rekap {
                 width: 100% !important;
                 border-collapse: collapse !important;
                 border: 2px solid #000 !important;
-                margin-top: 20px !important;
             }
             
             .tabel-rekap th {
                 border: 1.5px solid #000 !important;
-                padding: 10px 6px !important;
+                padding: 8px 6px !important;
                 font-weight: 700 !important;
                 font-size: 10px !important;
                 text-transform: uppercase !important;
                 text-align: center !important;
-                background-color: #e2e8f0 !important;
+                background-color: #f1f5f9 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
             
             .tabel-rekap td {
                 border: 1px solid #000 !important;
-                padding: 8px 6px !important;
-                font-size: 10px !important;
+                padding: 6px !important;
+                font-size: 10.5px !important;
                 text-align: center !important;
+                color: #000 !important;
             }
             
-            .tabel-rekap td.nama-santri {
+            .tabel-rekap td.teks-kiri {
                 text-align: left !important;
-                font-weight: 500 !important;
-            }
-            
-            .tanda-tangan {
-                margin-top: 60px !important;
-                text-align: right !important;
-                padding-right: 50px !important;
-                font-size: 12px !important;
             }
         }
     </style>
@@ -9085,48 +9431,67 @@ $data_santri = mysqli_fetch_all(mysqli_query($conn, $sql_santri), MYSQLI_ASSOC);
     <?php include 'includes/sidebar.php'; ?>
 
     <div class="ml-64 p-8">
-        <div class="flex justify-between items-center mb-8 no-print">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="file-bar-chart" class="w-7 h-7 text-indigo-600"></i> Rekapitulasi Bulanan
-                </h1>
-                <p class="text-sm text-slate-500 mt-1">Laporan detail perkembangan hafalan dan kehadiran per santri.</p>
+        <!-- Header Halaman -->
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-6 no-print">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-center text-indigo-600">
+                    <i data-lucide="file-bar-chart" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Rekapitulasi Bulanan</h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Laporan terpadu capaian hafalan (Ziyadah, Muraja'ah, Tasmi') dan kehadiran santri.</p>
+                </div>
             </div>
-            <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2">
-                <i data-lucide="printer" class="w-4 h-4"></i> Cetak PDF
+            <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl transition shadow-sm flex items-center gap-2 text-xs">
+                <i data-lucide="printer" class="w-4 h-4"></i> Cetak Laporan (PDF)
             </button>
         </div>
 
-        <!-- Filter -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6 no-print">
+        <!-- Filter Periode & Lokal -->
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 mb-6 no-print">
             <form action="rekap_bulanan.php" method="GET" class="flex flex-wrap gap-4 items-end">
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">Bulan</label>
-                    <select name="bulan" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Filter Kelas / Lokal</label>
+                    <select name="id_lokal" onchange="this.form.submit()" class="px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="0">Semua Kelas / Lokal</option>
+                        <?php foreach ($lokal_list as $lk): ?>
+                            <option value="<?= $lk['id'] ?>" <?= (int)$lk['id'] === $id_lokal ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($lk['nama_halaqah']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Bulan</label>
+                    <select name="bulan" onchange="this.form.submit()" class="px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
                         <?php foreach ($nama_bulan as $num => $name): ?>
                             <option value="<?= $num ?>" <?= $num == $bulan_dipilih ? 'selected' : '' ?>><?= $name ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">Tahun</label>
-                    <input type="number" name="tahun" value="<?= $tahun_dipilih ?>" min="2024" max="2030" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-24">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tahun</label>
+                    <input type="number" name="tahun" value="<?= $tahun_dipilih ?>" min="2024" max="2035" class="px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold w-24 outline-none">
                 </div>
-                <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 px-6 rounded-lg transition flex items-center gap-2">
-                    <i data-lucide="search" class="w-4 h-4"></i> Tampilkan
+                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-5 rounded-xl transition flex items-center gap-2 text-xs">
+                    <i data-lucide="search" class="w-3.5 h-3.5"></i> Tampilkan
                 </button>
             </form>
         </div>
 
-        <!-- Laporan -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-8">
+        <!-- Lembar Laporan -->
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
             
             <!-- Kop Surat -->
-            <div class="kop-surat text-center mb-8 pb-6 border-b-4 border-double border-slate-800">
-                <h2 class="text-2xl font-bold text-slate-900 tracking-wider">SURAU TAHFIZH FIRDAUS</h2>
-                <h3 class="text-base font-semibold text-slate-700 mt-2">Laporan Rekapitulasi Hafalan & Kehadiran Santri</h3>
-                <p class="text-sm text-slate-600 mt-3">Periode: <b class="text-slate-900"><?= $nama_bulan[$bulan_dipilih] ?> <?= $tahun_dipilih ?></b></p>
-                <p class="text-xs text-slate-500 mt-2">Dicetak pada: <?= date('d F Y, H:i') ?></p>
+            <div class="kop-surat text-center mb-6 pb-5 border-b-4 border-double border-slate-800">
+                <h2 class="text-xl font-extrabold text-slate-900 tracking-wide uppercase">SURAU TAHFIDZUL QUR'AN MUSHALLA FIRDAUS</h2>
+                <p class="text-xs text-slate-600 mt-0.5">Jorong Jalikur Patanangan Kenagarian Koto Tangah Kec. Tilatang Kamang Kab. Agam</p>
+                <h3 class="text-sm font-bold text-slate-800 mt-3 uppercase underline">Laporan Rekapitulasi Hafalan & Kehadiran Santri</h3>
+                <div class="flex justify-center gap-6 text-xs text-slate-600 mt-2">
+                    <span>Periode: <b class="text-slate-900"><?= $nama_bulan[$bulan_dipilih] ?> <?= $tahun_dipilih ?></b></span>
+                    <span>•</span>
+                    <span>Lokal: <b class="text-slate-900"><?= htmlspecialchars($nama_lokal_terpilih) ?></b></span>
+                </div>
             </div>
 
             <!-- Tabel Rekap -->
@@ -9134,60 +9499,62 @@ $data_santri = mysqli_fetch_all(mysqli_query($conn, $sql_santri), MYSQLI_ASSOC);
                 <table class="tabel-rekap w-full text-left border-collapse border-2 border-slate-800">
                     <thead>
                         <tr class="bg-slate-100">
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider w-10">No</th>
-                            <th class="py-3 px-4 border border-slate-800 font-semibold text-xs uppercase tracking-wider">Nama Santri</th>
-                            <th colspan="4" class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider bg-slate-200">Kehadiran</th>
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider">%</th>
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider bg-emerald-100">Ziyadah</th>
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider bg-blue-100">Muraja'ah</th>
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider bg-purple-100">Tasmi'</th>
+                            <th rowspan="2" class="py-3 px-3 border border-slate-800 text-center font-bold text-xs uppercase w-10">No</th>
+                            <th rowspan="2" class="py-3 px-4 border border-slate-800 font-bold text-xs uppercase">Nama Santri</th>
+                            <th rowspan="2" class="py-3 px-3 border border-slate-800 font-bold text-xs uppercase">NIS</th>
+                            <th rowspan="2" class="py-3 px-4 border border-slate-800 font-bold text-xs uppercase">Kelas / Lokal</th>
+                            <th colspan="5" class="py-2 px-3 border border-slate-800 text-center font-bold text-xs uppercase bg-slate-200">Rekap Kehadiran</th>
+                            <th colspan="3" class="py-2 px-3 border border-slate-800 text-center font-bold text-xs uppercase bg-indigo-50">Capaian Hafalan</th>
                         </tr>
                         <tr class="bg-slate-50">
-                            <th class="py-2 px-4 border border-slate-800"></th>
-                            <th class="py-2 px-4 border border-slate-800"></th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">H</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">S</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">I</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">A</th>
-                            <th class="py-2 px-4 border border-slate-800"></th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">(Ayat)</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">(Kali)</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">(Kali)</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-12">Hadir</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-12">Sakit</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-12">Izin</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-12">Alfa</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-16">% Hadir</th>
+                            <th class="py-2 px-3 border border-slate-800 text-center font-bold text-xs bg-emerald-50">Ziyadah (Ayat)</th>
+                            <th class="py-2 px-3 border border-slate-800 text-center font-bold text-xs bg-blue-50">Muraja'ah (Kali)</th>
+                            <th class="py-2 px-3 border border-slate-800 text-center font-bold text-xs bg-purple-50">Tasmi' (Kali)</th>
                         </tr>
                     </thead>
-                    <tbody class="text-sm text-slate-700">
+                    <tbody class="text-xs text-slate-700">
                         <?php if (empty($data_santri)): ?>
                             <tr>
-                                <td colspan="10" class="py-8 text-center text-slate-400 border border-slate-800">Tidak ada data santri untuk periode ini.</td>
+                                <td colspan="12" class="py-8 text-center text-slate-400 border border-slate-800">Tidak ada data santri untuk ditampilkan.</td>
                             </tr>
                         <?php else: ?>
-                            <?php $no = 1; foreach ($data_santri as $santri): 
-                                $total_hadir = $santri['hadir'] + $santri['sakit'] + $santri['izin'] + $santri['alpa'];
-                                $persentase_kehadiran = $total_hari_kerja > 0 ? round(($santri['hadir'] / $total_hari_kerja) * 100) : 0;
+                            <?php 
+                            $no = 1; 
+                            foreach ($data_santri as $santri): 
+                                $jml_pertemuan = (int)$santri['hadir'] + (int)$santri['sakit'] + (int)$santri['izin'] + (int)$santri['alpa'];
+                                // Persentase dihitung dari jumlah hari pertemuan tercatat (atau dari 26 hari kerja jika belum ada presensi)
+                                $persentase_kehadiran = $jml_pertemuan > 0 ? round(((int)$santri['hadir'] / $jml_pertemuan) * 100) : 0;
                             ?>
                                 <tr class="hover:bg-slate-50">
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-medium"><?= $no ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 nama-santri"><?= htmlspecialchars($santri['nama']) ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-emerald-600"><?= $santri['hadir'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-blue-600"><?= $santri['sakit'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-amber-600"><?= $santri['izin'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-red-600"><?= $santri['alpa'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-bold"><?= $persentase_kehadiran ?>%</td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-emerald-600"><?= $santri['total_ayat'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-blue-600"><?= $santri['total_murajaah'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-purple-600"><?= $santri['total_tasmi'] ?></td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-medium"><?= $no++ ?></td>
+                                    <td class="py-2.5 px-4 border border-slate-800 teks-kiri font-bold text-slate-900"><?= htmlspecialchars($santri['nama']) ?></td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-mono"><?= htmlspecialchars($santri['nis'] ?: '-') ?></td>
+                                    <td class="py-2.5 px-4 border border-slate-800 teks-kiri"><?= htmlspecialchars($santri['nama_halaqah'] ?: '-') ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-bold text-emerald-600"><?= (int)$santri['hadir'] ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-bold text-blue-600"><?= (int)$santri['sakit'] ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-bold text-amber-600"><?= (int)$santri['izin'] ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-bold text-rose-600"><?= (int)$santri['alpa'] ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-extrabold"><?= $persentase_kehadiran ?>%</td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-bold text-emerald-700"><?= (int)$santri['total_ayat'] ?></td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-bold text-blue-700"><?= (int)$santri['total_murajaah'] ?></td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-bold text-purple-700"><?= (int)$santri['total_tasmi'] ?></td>
                                 </tr>
-                            <?php $no++; endforeach; ?>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
 
             <!-- Tanda Tangan -->
-            <div class="tanda-tangan mt-16 text-right pr-12">
-                <p class="text-sm text-slate-700 mb-1">Jorong Jalikur Patanangan, <?= date('d F Y') ?></p>
-                <p class="text-sm text-slate-700 mb-20">Pimpinan Surau Tahfizh Firdaus</p>
-                <p class="text-sm text-slate-900 font-bold underline">( ................................... )</p>
+            <div class="tanda-tangan mt-12 text-right pr-8">
+                <p class="text-xs text-slate-700 mb-1">Jorong Jalikur Patanangan, <?= date('d F Y') ?></p>
+                <p class="text-xs text-slate-700 mb-16">Pimpinan Surau Tahfizh Firdaus</p>
+                <p class="text-xs text-slate-900 font-bold underline">( Ust. Aipda Syaiful Hendra )</p>
             </div>
         </div>
     </div>
@@ -9198,7 +9565,7 @@ $data_santri = mysqli_fetch_all(mysqli_query($conn, $sql_santri), MYSQLI_ASSOC);
 
 ================================================================================
 FILE: target_santri.php
-UKURAN: 25,466 bytes
+UKURAN: 25,656 bytes
 ================================================================================
 <?php
 session_start();
@@ -9251,7 +9618,9 @@ if (isset($_GET['hapus'])) {
     exit;
 }
 
-$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama, nis FROM santri ORDER BY nama ASC"), MYSQLI_ASSOC);
+require_once 'includes/init_rbac.php';
+$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
+$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT s.id, s.nama, s.nis FROM santri s $where_binaan ORDER BY s.nama ASC"), MYSQLI_ASSOC);
 
 // Ambil daftar target beserta progres ziyadah sejak tanggal_mulai target
 $sql_target = "SELECT t.*, s.nama, s.nis, s.jenis_kelamin,
@@ -9264,6 +9633,7 @@ $sql_target = "SELECT t.*, s.nama, s.nis, s.jenis_kelamin,
                ), 0) AS ayat_tercapai
                FROM target_hafalan t 
                JOIN santri s ON t.id_santri = s.id 
+               $where_binaan
                ORDER BY s.nama ASC";
 $target_list = mysqli_fetch_all(mysqli_query($conn, $sql_target), MYSQLI_ASSOC);
 ?>

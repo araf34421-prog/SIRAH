@@ -15,7 +15,9 @@ if (mysqli_num_rows($cek_kolom_pr) === 0) {
 }
 
 $id_ustadz = $_SESSION['user_id'];
-$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama, nis FROM santri ORDER BY nama ASC"), MYSQLI_ASSOC);
+require_once 'includes/init_rbac.php';
+$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
+$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT s.id, s.nama, s.nis FROM santri s $where_binaan ORDER BY s.nama ASC"), MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {   
     $tanggal = $_POST['tanggal'];
@@ -40,7 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Ambil riwayat PR yang diberikan hari ini
-$riwayat_query = "SELECT p.*, s.nama as nama_santri FROM pr p JOIN santri s ON p.id_santri = s.id WHERE p.tanggal = CURDATE() ORDER BY p.id DESC";
+$and_binaan = !empty($where_binaan) ? str_replace('WHERE', 'AND', $where_binaan) : '';
+$riwayat_query = "SELECT p.*, s.nama as nama_santri, s.nama_ortu, s.no_hp_ortu 
+                  FROM pr p 
+                  JOIN santri s ON p.id_santri = s.id 
+                  WHERE p.tanggal = CURDATE() $and_binaan 
+                  ORDER BY p.id DESC";
 $riwayat_list = mysqli_fetch_all(mysqli_query($conn, $riwayat_query), MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
@@ -212,9 +219,20 @@ $riwayat_list = mysqli_fetch_all(mysqli_query($conn, $riwayat_query), MYSQLI_ASS
                                         <?= nl2br(htmlspecialchars($r['deskripsi'])) ?>
                                     </td>
                                     <td class="py-4 px-6 text-center">
-                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold <?= ($r['status_ortu'] ?? 'Belum') === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' ?>">
-                                            <?= ($r['status_ortu'] ?? 'Belum') === 'Selesai' ? '✅ Sudah Disimak Ortu' : '⏳ Belum Disimak' ?>
-                                        </span>
+                                        <div class="flex items-center justify-center gap-2">
+                                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold <?= ($r['status_ortu'] ?? 'Belum') === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' ?>">
+                                                <?= ($r['status_ortu'] ?? 'Belum') === 'Selesai' ? 'Sudah Disimak' : 'Belum Disimak' ?>
+                                            </span>
+                                            <?php 
+                                            $wa_pr = buatLinkWaPR($r['no_hp_ortu'] ?? '', $r['nama_santri'], $r['nama_ortu'] ?? '', $r['tanggal'], $r['judul'], $r['deskripsi'], $_SESSION['nama_lengkap'] ?? 'Ustadz/ah');
+                                            if (!empty($wa_pr)): 
+                                            ?>
+                                                <a href="<?= $wa_pr ?>" target="_blank" title="Beritahu PR via WhatsApp Ortu"
+                                                   class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 rounded-lg inline-flex items-center gap-1 text-[11px] font-bold transition">
+                                                    <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> WA
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

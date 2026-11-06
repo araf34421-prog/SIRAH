@@ -49,7 +49,9 @@ if (isset($_GET['hapus'])) {
     exit;
 }
 
-$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama, nis FROM santri ORDER BY nama ASC"), MYSQLI_ASSOC);
+require_once 'includes/init_rbac.php';
+$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
+$santri_list = mysqli_fetch_all(mysqli_query($conn, "SELECT s.id, s.nama, s.nis FROM santri s $where_binaan ORDER BY s.nama ASC"), MYSQLI_ASSOC);
 
 // Ambil daftar target beserta progres ziyadah sejak tanggal_mulai target
 $sql_target = "SELECT t.*, s.nama, s.nis, s.jenis_kelamin,
@@ -62,6 +64,7 @@ $sql_target = "SELECT t.*, s.nama, s.nis, s.jenis_kelamin,
                ), 0) AS ayat_tercapai
                FROM target_hafalan t 
                JOIN santri s ON t.id_santri = s.id 
+               $where_binaan
                ORDER BY s.nama ASC";
 $target_list = mysqli_fetch_all(mysqli_query($conn, $sql_target), MYSQLI_ASSOC);
 ?>

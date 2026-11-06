@@ -23,21 +23,26 @@ if (isset($_GET['hapus'])) {
     exit;
 }
 
-// Ambil daftar santri beserta nama lokalnya
+require_once 'includes/init_rbac.php';
+$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
+
+// Ambil daftar santri khusus lokal binaan Ustadz/Ustadzah yang login
 $santri_query = "SELECT s.id, s.nama, s.nis, h.nama_halaqah 
                  FROM santri s 
                  LEFT JOIN halaqah h ON s.id_halaqah = h.id 
+                 $where_binaan
                  ORDER BY s.nama ASC";
 $santri_result = mysqli_query($conn, $santri_query);
 $santri_list = mysqli_fetch_all($santri_result, MYSQLI_ASSOC);
 
-// Ambil riwayat murajaah hari ini
+// Ambil riwayat murajaah hari ini (khusus santri binaan)
 $jenis_halaman = 'murajaah'; 
-$riwayat_query = "SELECT h.*, s.nama as nama_santri, hl.nama_halaqah 
+$and_binaan = !empty($where_binaan) ? str_replace('WHERE', 'AND', $where_binaan) : '';
+$riwayat_query = "SELECT h.*, s.nama as nama_santri, s.nama_ortu, s.no_hp_ortu, hl.nama_halaqah 
                   FROM hafalan h 
                   JOIN santri s ON h.id_santri = s.id 
                   LEFT JOIN halaqah hl ON s.id_halaqah = hl.id
-                  WHERE h.tanggal = CURDATE() AND h.jenis = '$jenis_halaman' 
+                  WHERE h.tanggal = CURDATE() AND h.jenis = '$jenis_halaman' $and_binaan
                   ORDER BY h.id DESC";
 $riwayat_result = mysqli_query($conn, $riwayat_query);
 $riwayat_list = mysqli_fetch_all($riwayat_result, MYSQLI_ASSOC);
@@ -409,12 +414,38 @@ $daftar_surat = ["Al-Fatihah","Al-Baqarah","Ali 'Imran","An-Nisa'","Al-Ma'idah",
                                     <?= htmlspecialchars($r['catatan'] ?: '-') ?>
                                 </td>
                                 <td class="py-3.5 px-5 text-right">
-                                    <a href="input_murajaah.php?hapus=<?= $r['id'] ?>" 
-                                       onclick="return confirm('Hapus catatan setoran murajaah ini?')"
-                                       title="Hapus Setoran"
-                                       class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg inline-flex transition">
-                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                    </a>
+                                    <div class="inline-flex items-center justify-end gap-1">
+                                        <?php 
+                                        $link_wa = buatLinkWaHafalan(
+                                            $r['no_hp_ortu'] ?? '',
+                                            $r['nama_santri'],
+                                            $r['nama_ortu'] ?? '',
+                                            $r['jenis'],
+                                            $r['tanggal'],
+                                            $r['juz'] ?? '',
+                                            $r['pojok'] ?? '',
+                                            $r['surat'],
+                                            $r['ayat_awal'],
+                                            $r['ayat_akhir'],
+                                            $r['predikat'],
+                                            $r['catatan'] ?? '',
+                                            $_SESSION['nama_lengkap'] ?? 'Ustadz/Ustadzah'
+                                        );
+                                        if (!empty($link_wa)): 
+                                        ?>
+                                            <a href="<?= $link_wa ?>" target="_blank" title="Kirim Laporan ke WhatsApp Ortu"
+                                               class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 rounded-lg inline-flex items-center gap-1 text-[11px] font-bold transition">
+                                                <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> WA Ortu
+                                            </a>
+                                        <?php endif; ?>
+
+                                        <a href="?hapus=<?= $r['id'] ?>" 
+                                           onclick="return confirm('Hapus catatan setoran ini?')"
+                                           title="Hapus Setoran"
+                                           class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg inline-flex transition">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

@@ -20,12 +20,15 @@ $surat_juz_30 = [
 ];
 
 // Ambil daftar santri beserta Lokal/Kelas & Ustadz Pengampunya
+require_once 'includes/init_rbac.php';
+$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
 $santri_query = "SELECT s.id, s.nama, s.nis, s.jenis_kelamin, s.id_halaqah, 
                         h.nama_halaqah, h.keterangan as ket_lokal,
                         COALESCE(u.nama_lengkap, h.nama_pengajar) as pengajar_lokal
                  FROM santri s
                  LEFT JOIN halaqah h ON s.id_halaqah = h.id
                  LEFT JOIN users u ON h.id_ustadz = u.id
+                 $where_binaan
                  ORDER BY s.nama ASC";
 $santri_res = mysqli_query($conn, $santri_query);
 $santri_list = mysqli_fetch_all($santri_res, MYSQLI_ASSOC);

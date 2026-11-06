@@ -7,96 +7,122 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'u
     exit;
 }
 
-$bulan_dipilih = isset($_GET['bulan']) ? $_GET['bulan'] : date('m');
-$tahun_dipilih = isset($_GET['tahun']) ? $_GET['tahun'] : date('Y');
-$periode = $tahun_dipilih . '-' . $bulan_dipilih;
+$bulan_dipilih = isset($_GET['bulan']) ? str_pad((int)$_GET['bulan'], 2, '0', STR_PAD_LEFT) : date('m');
+$tahun_dipilih = isset($_GET['tahun']) ? (int)$_GET['tahun'] : (int)date('Y');
+$id_lokal      = isset($_GET['id_lokal']) ? (int)$_GET['id_lokal'] : 0;
+$periode       = $tahun_dipilih . '-' . $bulan_dipilih;
 
-$nama_bulan = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
+$nama_bulan = [
+    '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+    '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+    '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+];
 
-// Hitung total hari kerja di bulan tersebut (asumsi 26 hari)
-$total_hari_kerja = 26;
+// Ambil daftar lokal untuk filter
+$lokal_list = mysqli_fetch_all(mysqli_query($conn, "SELECT id, nama_halaqah FROM halaqah ORDER BY id ASC"), MYSQLI_ASSOC);
+$nama_lokal_terpilih = "Semua Kelas / Lokal";
+foreach ($lokal_list as $lk) {
+    if ((int)$lk['id'] === $id_lokal) {
+        $nama_lokal_terpilih = $lk['nama_halaqah'];
+        break;
+    }
+}
 
-// Query lengkap: hafalan + kehadiran/absensi
-$sql_santri = "SELECT s.id, s.nama, s.nis,
-              COALESCE(SUM(CASE WHEN h.jenis = 'ziyadah' THEN h.jumlah_ayat ELSE 0 END), 0) as total_ayat,
-              COALESCE(SUM(CASE WHEN h.jenis = 'murajaah' THEN 1 ELSE 0 END), 0) as total_murajaah,
-              COALESCE(SUM(CASE WHEN h.jenis = 'tasmi' THEN 1 ELSE 0 END), 0) as total_tasmi,
-              COALESCE(SUM(CASE WHEN a.status = 'Hadir' OR k.status = 'H' THEN 1 ELSE 0 END), 0) as hadir,
-              COALESCE(SUM(CASE WHEN a.status = 'Sakit' OR k.status = 'S' THEN 1 ELSE 0 END), 0) as sakit,
-              COALESCE(SUM(CASE WHEN a.status = 'Izin' OR k.status = 'I' THEN 1 ELSE 0 END), 0) as izin,
-              COALESCE(SUM(CASE WHEN a.status = 'Alfa' OR k.status = 'A' THEN 1 ELSE 0 END), 0) as alpa
-              FROM santri s 
-              LEFT JOIN hafalan h ON s.id = h.id_santri AND DATE_FORMAT(h.tanggal, '%Y-%m') = '$periode'
-              LEFT JOIN absensi a ON s.id = a.id_santri AND DATE_FORMAT(a.tanggal, '%Y-%m') = '$periode'
-              LEFT JOIN kehadiran k ON s.id = k.id_santri AND DATE_FORMAT(k.tanggal, '%Y-%m') = '$periode'
-              GROUP BY s.id 
-              ORDER BY s.nama ASC";
+$where_lokal = $id_lokal > 0 ? "WHERE s.id_halaqah = $id_lokal" : "";
+
+// Query akurat menggunakan Subquery terpisah untuk Hafalan (h) dan Absensi (a)
+// agar TIDAK terjadi duplikasi perkalian baris (Cartesian Product)
+$sql_santri = "SELECT 
+                  s.id, s.nama, s.nis, hl.nama_halaqah,
+                  COALESCE(h.total_ayat, 0) as total_ayat,
+                  COALESCE(h.total_murajaah, 0) as total_murajaah,
+                  COALESCE(h.total_tasmi, 0) as total_tasmi,
+                  COALESCE(a.hadir, 0) as hadir,
+                  COALESCE(a.sakit, 0) as sakit,
+                  COALESCE(a.izin, 0) as izin,
+                  COALESCE(a.alpa, 0) as alpa
+               FROM santri s
+               LEFT JOIN halaqah hl ON s.id_halaqah = hl.id
+               LEFT JOIN (
+                   SELECT id_santri,
+                          SUM(CASE WHEN jenis = 'ziyadah' THEN jumlah_ayat ELSE 0 END) as total_ayat,
+                          SUM(CASE WHEN jenis = 'murajaah' THEN 1 ELSE 0 END) as total_murajaah,
+                          SUM(CASE WHEN jenis = 'tasmi' THEN 1 ELSE 0 END) as total_tasmi
+                   FROM hafalan
+                   WHERE DATE_FORMAT(tanggal, '%Y-%m') = '$periode'
+                   GROUP BY id_santri
+               ) h ON s.id = h.id_santri
+               LEFT JOIN (
+                   SELECT id_santri,
+                          SUM(CASE WHEN UPPER(LEFT(TRIM(status), 1)) = 'H' THEN 1 ELSE 0 END) as hadir,
+                          SUM(CASE WHEN UPPER(LEFT(TRIM(status), 1)) = 'S' THEN 1 ELSE 0 END) as sakit,
+                          SUM(CASE WHEN UPPER(LEFT(TRIM(status), 1)) = 'I' THEN 1 ELSE 0 END) as izin,
+                          SUM(CASE WHEN UPPER(LEFT(TRIM(status), 1)) = 'A' THEN 1 ELSE 0 END) as alpa
+                   FROM absensi
+                   WHERE DATE_FORMAT(tanggal, '%Y-%m') = '$periode'
+                   GROUP BY id_santri
+               ) a ON s.id = a.id_santri
+               $where_lokal
+               ORDER BY s.nama ASC";
+
 $data_santri = mysqli_fetch_all(mysqli_query($conn, $sql_santri), MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Rekap Bulanan - Surau Tahfizh Firdaus</title>
+    <title>Rekap Bulanan (<?= $nama_bulan[$bulan_dipilih] ?> <?= $tahun_dipilih ?>) - Surau Tahfizh Firdaus</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
         
         @media print {
             @page {
                 size: A4 landscape;
-                margin: 1.5cm 2cm 1.5cm 2cm;
+                margin: 1.2cm 1.5cm;
             }
             .no-print, aside, nav, .sidebar, script, button { display: none !important; }
             .ml-64 { margin-left: 0 !important; padding: 0 !important; }
             body { background: white !important; margin: 0 !important; padding: 0 !important; }
-            .shadow-sm, .shadow, .rounded-xl { box-shadow: none !important; border-radius: 0 !important; }
+            .shadow-sm, .shadow, .rounded-xl, .rounded-2xl { box-shadow: none !important; border-radius: 0 !important; border: none !important; }
             
             .kop-surat {
                 text-align: center !important;
                 border-bottom: 3px double #000 !important;
-                padding-bottom: 15px !important;
-                margin-bottom: 30px !important;
+                padding-bottom: 12px !important;
+                margin-bottom: 20px !important;
             }
             
             .tabel-rekap {
                 width: 100% !important;
                 border-collapse: collapse !important;
                 border: 2px solid #000 !important;
-                margin-top: 20px !important;
             }
             
             .tabel-rekap th {
                 border: 1.5px solid #000 !important;
-                padding: 10px 6px !important;
+                padding: 8px 6px !important;
                 font-weight: 700 !important;
                 font-size: 10px !important;
                 text-transform: uppercase !important;
                 text-align: center !important;
-                background-color: #e2e8f0 !important;
+                background-color: #f1f5f9 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
             
             .tabel-rekap td {
                 border: 1px solid #000 !important;
-                padding: 8px 6px !important;
-                font-size: 10px !important;
+                padding: 6px !important;
+                font-size: 10.5px !important;
                 text-align: center !important;
+                color: #000 !important;
             }
             
-            .tabel-rekap td.nama-santri {
+            .tabel-rekap td.teks-kiri {
                 text-align: left !important;
-                font-weight: 500 !important;
-            }
-            
-            .tanda-tangan {
-                margin-top: 60px !important;
-                text-align: right !important;
-                padding-right: 50px !important;
-                font-size: 12px !important;
             }
         }
     </style>
@@ -106,48 +132,67 @@ $data_santri = mysqli_fetch_all(mysqli_query($conn, $sql_santri), MYSQLI_ASSOC);
     <?php include 'includes/sidebar.php'; ?>
 
     <div class="ml-64 p-8">
-        <div class="flex justify-between items-center mb-8 no-print">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="file-bar-chart" class="w-7 h-7 text-indigo-600"></i> Rekapitulasi Bulanan
-                </h1>
-                <p class="text-sm text-slate-500 mt-1">Laporan detail perkembangan hafalan dan kehadiran per santri.</p>
+        <!-- Header Halaman -->
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-6 no-print">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-center text-indigo-600">
+                    <i data-lucide="file-bar-chart" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Rekapitulasi Bulanan</h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Laporan terpadu capaian hafalan (Ziyadah, Muraja'ah, Tasmi') dan kehadiran santri.</p>
+                </div>
             </div>
-            <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2">
-                <i data-lucide="printer" class="w-4 h-4"></i> Cetak PDF
+            <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl transition shadow-sm flex items-center gap-2 text-xs">
+                <i data-lucide="printer" class="w-4 h-4"></i> Cetak Laporan (PDF)
             </button>
         </div>
 
-        <!-- Filter -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-6 no-print">
+        <!-- Filter Periode & Lokal -->
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 mb-6 no-print">
             <form action="rekap_bulanan.php" method="GET" class="flex flex-wrap gap-4 items-end">
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">Bulan</label>
-                    <select name="bulan" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Filter Kelas / Lokal</label>
+                    <select name="id_lokal" onchange="this.form.submit()" class="px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="0">Semua Kelas / Lokal</option>
+                        <?php foreach ($lokal_list as $lk): ?>
+                            <option value="<?= $lk['id'] ?>" <?= (int)$lk['id'] === $id_lokal ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($lk['nama_halaqah']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Bulan</label>
+                    <select name="bulan" onchange="this.form.submit()" class="px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
                         <?php foreach ($nama_bulan as $num => $name): ?>
                             <option value="<?= $num ?>" <?= $num == $bulan_dipilih ? 'selected' : '' ?>><?= $name ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">Tahun</label>
-                    <input type="number" name="tahun" value="<?= $tahun_dipilih ?>" min="2024" max="2030" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-24">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tahun</label>
+                    <input type="number" name="tahun" value="<?= $tahun_dipilih ?>" min="2024" max="2035" class="px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold w-24 outline-none">
                 </div>
-                <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 px-6 rounded-lg transition flex items-center gap-2">
-                    <i data-lucide="search" class="w-4 h-4"></i> Tampilkan
+                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-5 rounded-xl transition flex items-center gap-2 text-xs">
+                    <i data-lucide="search" class="w-3.5 h-3.5"></i> Tampilkan
                 </button>
             </form>
         </div>
 
-        <!-- Laporan -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-8">
+        <!-- Lembar Laporan -->
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
             
             <!-- Kop Surat -->
-            <div class="kop-surat text-center mb-8 pb-6 border-b-4 border-double border-slate-800">
-                <h2 class="text-2xl font-bold text-slate-900 tracking-wider">SURAU TAHFIZH FIRDAUS</h2>
-                <h3 class="text-base font-semibold text-slate-700 mt-2">Laporan Rekapitulasi Hafalan & Kehadiran Santri</h3>
-                <p class="text-sm text-slate-600 mt-3">Periode: <b class="text-slate-900"><?= $nama_bulan[$bulan_dipilih] ?> <?= $tahun_dipilih ?></b></p>
-                <p class="text-xs text-slate-500 mt-2">Dicetak pada: <?= date('d F Y, H:i') ?></p>
+            <div class="kop-surat text-center mb-6 pb-5 border-b-4 border-double border-slate-800">
+                <h2 class="text-xl font-extrabold text-slate-900 tracking-wide uppercase">SURAU TAHFIDZUL QUR'AN MUSHALLA FIRDAUS</h2>
+                <p class="text-xs text-slate-600 mt-0.5">Jorong Jalikur Patanangan Kenagarian Koto Tangah Kec. Tilatang Kamang Kab. Agam</p>
+                <h3 class="text-sm font-bold text-slate-800 mt-3 uppercase underline">Laporan Rekapitulasi Hafalan & Kehadiran Santri</h3>
+                <div class="flex justify-center gap-6 text-xs text-slate-600 mt-2">
+                    <span>Periode: <b class="text-slate-900"><?= $nama_bulan[$bulan_dipilih] ?> <?= $tahun_dipilih ?></b></span>
+                    <span>•</span>
+                    <span>Lokal: <b class="text-slate-900"><?= htmlspecialchars($nama_lokal_terpilih) ?></b></span>
+                </div>
             </div>
 
             <!-- Tabel Rekap -->
@@ -155,60 +200,62 @@ $data_santri = mysqli_fetch_all(mysqli_query($conn, $sql_santri), MYSQLI_ASSOC);
                 <table class="tabel-rekap w-full text-left border-collapse border-2 border-slate-800">
                     <thead>
                         <tr class="bg-slate-100">
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider w-10">No</th>
-                            <th class="py-3 px-4 border border-slate-800 font-semibold text-xs uppercase tracking-wider">Nama Santri</th>
-                            <th colspan="4" class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider bg-slate-200">Kehadiran</th>
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider">%</th>
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider bg-emerald-100">Ziyadah</th>
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider bg-blue-100">Muraja'ah</th>
-                            <th class="py-3 px-4 border border-slate-800 text-center font-semibold text-xs uppercase tracking-wider bg-purple-100">Tasmi'</th>
+                            <th rowspan="2" class="py-3 px-3 border border-slate-800 text-center font-bold text-xs uppercase w-10">No</th>
+                            <th rowspan="2" class="py-3 px-4 border border-slate-800 font-bold text-xs uppercase">Nama Santri</th>
+                            <th rowspan="2" class="py-3 px-3 border border-slate-800 font-bold text-xs uppercase">NIS</th>
+                            <th rowspan="2" class="py-3 px-4 border border-slate-800 font-bold text-xs uppercase">Kelas / Lokal</th>
+                            <th colspan="5" class="py-2 px-3 border border-slate-800 text-center font-bold text-xs uppercase bg-slate-200">Rekap Kehadiran</th>
+                            <th colspan="3" class="py-2 px-3 border border-slate-800 text-center font-bold text-xs uppercase bg-indigo-50">Capaian Hafalan</th>
                         </tr>
                         <tr class="bg-slate-50">
-                            <th class="py-2 px-4 border border-slate-800"></th>
-                            <th class="py-2 px-4 border border-slate-800"></th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">H</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">S</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">I</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">A</th>
-                            <th class="py-2 px-4 border border-slate-800"></th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">(Ayat)</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">(Kali)</th>
-                            <th class="py-2 px-4 border border-slate-800 text-center font-semibold text-xs">(Kali)</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-12">Hadir</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-12">Sakit</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-12">Izin</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-12">Alfa</th>
+                            <th class="py-2 px-2 border border-slate-800 text-center font-bold text-xs w-16">% Hadir</th>
+                            <th class="py-2 px-3 border border-slate-800 text-center font-bold text-xs bg-emerald-50">Ziyadah (Ayat)</th>
+                            <th class="py-2 px-3 border border-slate-800 text-center font-bold text-xs bg-blue-50">Muraja'ah (Kali)</th>
+                            <th class="py-2 px-3 border border-slate-800 text-center font-bold text-xs bg-purple-50">Tasmi' (Kali)</th>
                         </tr>
                     </thead>
-                    <tbody class="text-sm text-slate-700">
+                    <tbody class="text-xs text-slate-700">
                         <?php if (empty($data_santri)): ?>
                             <tr>
-                                <td colspan="10" class="py-8 text-center text-slate-400 border border-slate-800">Tidak ada data santri untuk periode ini.</td>
+                                <td colspan="12" class="py-8 text-center text-slate-400 border border-slate-800">Tidak ada data santri untuk ditampilkan.</td>
                             </tr>
                         <?php else: ?>
-                            <?php $no = 1; foreach ($data_santri as $santri): 
-                                $total_hadir = $santri['hadir'] + $santri['sakit'] + $santri['izin'] + $santri['alpa'];
-                                $persentase_kehadiran = $total_hari_kerja > 0 ? round(($santri['hadir'] / $total_hari_kerja) * 100) : 0;
+                            <?php 
+                            $no = 1; 
+                            foreach ($data_santri as $santri): 
+                                $jml_pertemuan = (int)$santri['hadir'] + (int)$santri['sakit'] + (int)$santri['izin'] + (int)$santri['alpa'];
+                                // Persentase dihitung dari jumlah hari pertemuan tercatat (atau dari 26 hari kerja jika belum ada presensi)
+                                $persentase_kehadiran = $jml_pertemuan > 0 ? round(((int)$santri['hadir'] / $jml_pertemuan) * 100) : 0;
                             ?>
                                 <tr class="hover:bg-slate-50">
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-medium"><?= $no ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 nama-santri"><?= htmlspecialchars($santri['nama']) ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-emerald-600"><?= $santri['hadir'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-blue-600"><?= $santri['sakit'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-amber-600"><?= $santri['izin'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-red-600"><?= $santri['alpa'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-bold"><?= $persentase_kehadiran ?>%</td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-emerald-600"><?= $santri['total_ayat'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-blue-600"><?= $santri['total_murajaah'] ?></td>
-                                    <td class="py-3 px-4 border border-slate-800 text-center font-semibold text-purple-600"><?= $santri['total_tasmi'] ?></td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-medium"><?= $no++ ?></td>
+                                    <td class="py-2.5 px-4 border border-slate-800 teks-kiri font-bold text-slate-900"><?= htmlspecialchars($santri['nama']) ?></td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-mono"><?= htmlspecialchars($santri['nis'] ?: '-') ?></td>
+                                    <td class="py-2.5 px-4 border border-slate-800 teks-kiri"><?= htmlspecialchars($santri['nama_halaqah'] ?: '-') ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-bold text-emerald-600"><?= (int)$santri['hadir'] ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-bold text-blue-600"><?= (int)$santri['sakit'] ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-bold text-amber-600"><?= (int)$santri['izin'] ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-bold text-rose-600"><?= (int)$santri['alpa'] ?></td>
+                                    <td class="py-2.5 px-2 border border-slate-800 text-center font-extrabold"><?= $persentase_kehadiran ?>%</td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-bold text-emerald-700"><?= (int)$santri['total_ayat'] ?></td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-bold text-blue-700"><?= (int)$santri['total_murajaah'] ?></td>
+                                    <td class="py-2.5 px-3 border border-slate-800 text-center font-bold text-purple-700"><?= (int)$santri['total_tasmi'] ?></td>
                                 </tr>
-                            <?php $no++; endforeach; ?>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
 
             <!-- Tanda Tangan -->
-            <div class="tanda-tangan mt-16 text-right pr-12">
-                <p class="text-sm text-slate-700 mb-1">Jorong Jalikur Patanangan, <?= date('d F Y') ?></p>
-                <p class="text-sm text-slate-700 mb-20">Pimpinan Surau Tahfizh Firdaus</p>
-                <p class="text-sm text-slate-900 font-bold underline">( ................................... )</p>
+            <div class="tanda-tangan mt-12 text-right pr-8">
+                <p class="text-xs text-slate-700 mb-1">Jorong Jalikur Patanangan, <?= date('d F Y') ?></p>
+                <p class="text-xs text-slate-700 mb-16">Pimpinan Surau Tahfizh Firdaus</p>
+                <p class="text-xs text-slate-900 font-bold underline">( Ust. Aipda Syaiful Hendra )</p>
             </div>
         </div>
     </div>

@@ -1,8 +1,9 @@
 <?php
 require_once __DIR__ . '/init_rbac.php';
 
-$role = $_SESSION['role'] ?? '';
-$nama = $_SESSION['nama_lengkap'] ?? 'Pengguna';
+$role          = $_SESSION['role'] ?? '';
+$nama          = $_SESSION['nama_lengkap'] ?? 'Pengguna';
+$id_user_login = (int) ($_SESSION['user_id'] ?? 0);
 $halaman_aktif = basename($_SERVER['PHP_SELF']);
 
 // Proteksi Otomatis: Cek apakah role yang sedang login diizinkan mengakses file halaman ini
@@ -12,7 +13,7 @@ if (!empty($role) && !cekIzinAksesFile($conn, $role, $halaman_aktif)) {
     exit;
 }
 
-// Penyesuaian label role & warna badge
+// Penyesuaian label role & warna badge (Deteksi Akurat Ustadz vs Ustadzah dari DB & Lokal)
 $label_role = 'Pengguna';
 $badge_role_class = 'bg-slate-800 text-slate-300 border-slate-700';
 
@@ -20,7 +21,7 @@ if ($role === 'operator') {
     $label_role = 'Operator Sistem';
     $badge_role_class = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
 } elseif ($role === 'ustadz') {
-    if (stripos($nama, 'ustadzah') !== false) {
+    if (isPengajarUstadzah($conn, $id_user_login)) {
         $label_role = 'Ustadzah';
         $badge_role_class = 'bg-teal-500/15 text-teal-300 border-teal-500/30';
     } else {
@@ -118,7 +119,7 @@ foreach ($sidebar_menus as $sm) {
     <div class="p-3.5 border-t border-slate-800/80 bg-slate-900/60">
         <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800/90 flex items-center gap-3 mb-2.5">
             <div class="relative shrink-0">
-                <div class="w-9 h-9 bg-gradient-to-br <?= $role === 'operator' ? 'from-rose-500 to-orange-600' : 'from-indigo-500 to-purple-600' ?> rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                <div class="w-9 h-9 bg-gradient-to-br <?= $role === 'operator' ? 'from-rose-500 to-orange-600' : ($label_role === 'Ustadzah' ? 'from-teal-500 to-emerald-600' : 'from-indigo-500 to-purple-600') ?> rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
                     <?= strtoupper(substr($nama, 0, 1)) ?>
                 </div>
                 <span class="w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full absolute -bottom-0.5 -right-0.5"></span>
@@ -133,11 +134,18 @@ foreach ($sidebar_menus as $sm) {
             </div>
         </div>
 
-        <a href="logout.php" onclick="return confirm('Apakah Anda yakin ingin keluar dari sistem?')" 
-           class="flex items-center justify-center gap-2 w-full bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/20 hover:border-rose-600 py-2 rounded-xl transition-all duration-150 text-xs font-semibold">
-            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-            <span>Keluar Sistem</span>
-        </a>
+        <div class="grid grid-cols-2 gap-2">
+            <a href="profil_saya.php" 
+               class="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white border border-slate-700 hover:border-indigo-500 py-2 rounded-xl transition-all duration-150 text-xs font-semibold">
+                <i data-lucide="user-cog" class="w-3.5 h-3.5"></i>
+                <span>Profil & Sandi</span>
+            </a>
+            <a href="logout.php" onclick="return confirm('Apakah Anda yakin ingin keluar dari sistem?')" 
+               class="flex items-center justify-center gap-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/20 hover:border-rose-600 py-2 rounded-xl transition-all duration-150 text-xs font-semibold">
+                <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                <span>Keluar</span>
+            </a>
+        </div>
     </div>
 </aside>
 <script>lucide.createIcons();</script>
