@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 startAppSession();
 require __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/init_rbac.php';
 
 // 🔒 Keamanan: Hanya Ustadz dan Pimpinan
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'])) {
@@ -10,6 +11,10 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'u
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!santriDalamBinaan($conn, (int) ($_POST['id_santri'] ?? 0), (int) $_SESSION['user_id'], $_SESSION['role'])) {
+        http_response_code(403);
+        exit('Akses santri ditolak.');
+    }
     // 1. Ambil dan bersihkan data
     $id_santri      = (int) $_POST['id_santri'];
     $target_ayat    = (int) $_POST['target_ayat'];

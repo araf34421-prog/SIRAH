@@ -53,14 +53,14 @@ function isPengajarUstadzah($conn, $id_user) {
 }
 
 // 7. Fungsi Terpusat: Ambil SQL Filter Santri Khusus Binaan Ustadz/Ustadzah
-function getFilterSantriBinaanSQL($conn, $id_user, $role, $alias_tabel_santri = 's') {
+function getFilterSantriBinaanSQL($conn, $id_user, $role, $alias_tabel_santri = 's', $allow_mode_badal = true) {
     // Operator & Pimpinan bisa melihat seluruh santri
     if (in_array($role, ['operator', 'pimpinan'])) {
         return "";
     }
 
     // Mode Badal: Ustadz/Ustadzah menampilkan semua santri (?semua=1)
-    if (isset($_GET['semua']) && $_GET['semua'] === '1') {
+    if ($allow_mode_badal && isset($_GET['semua']) && $_GET['semua'] === '1') {
         return "";
     }
 
@@ -93,6 +93,22 @@ function getFilterSantriBinaanSQL($conn, $id_user, $role, $alias_tabel_santri = 
     $is_ustadzah = isPengajarUstadzah($conn, $id_user);
     $jk_target   = $is_ustadzah ? 'P' : 'L';
     return " WHERE ({$prefix}id_ustadz = $id_user OR ({$prefix}id_halaqah IS NULL AND {$prefix}jenis_kelamin = '$jk_target')) ";
+}
+
+function santriDalamBinaan($conn, $id_santri, $id_user, $role) {
+    $id_santri = (int) $id_santri;
+    $filter = getFilterSantriBinaanSQL($conn, (int) $id_user, $role, 's', false);
+    $and_filter = $filter !== '' ? ' AND ' . preg_replace('/^\s*WHERE\s+/i', '', $filter) : '';
+    $stmt = mysqli_prepare($conn, "SELECT s.id FROM santri s WHERE s.id = ? $and_filter LIMIT 1");
+    if (!$stmt) {
+        return false;
+    }
+    mysqli_stmt_bind_param($stmt, 'i', $id_santri);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $found = $result && mysqli_fetch_assoc($result) !== null;
+    mysqli_stmt_close($stmt);
+    return $found;
 }
 
 // 8. Fungsi Helper: Buat Link WhatsApp Otomatis untuk Laporan Setoran & PR ke Orang Tua

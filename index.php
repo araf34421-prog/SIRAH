@@ -8,6 +8,7 @@ $routes = [
     'input_murajaah' => ['pages/hafalan/murajaah.php', 'input_murajaah.php'],
     'input_pr' => ['pages/hafalan/input_pr.php', 'input_pr.php'],
     'input_rapor' => ['pages/rapor/input.php', 'input_rapor.php'],
+    'syahadah' => ['pages/rapor/syahadah.php', 'cetak_syahadah.php'],
     'input_tasmi' => ['pages/hafalan/tasmi.php', 'input_tasmi.php'],
     'input_ziyadah' => ['pages/hafalan/ziyadah.php', 'input_ziyadah.php'],
     'kelola-ustadz' => ['pages/pengguna/ustadz.php', 'kelola-ustadz.php'],

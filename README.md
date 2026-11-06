@@ -41,3 +41,6 @@ Semua CSS khusus SIRAH berada di `assets/css/style.css`. Ubah file ini untuk men
 2. Tambahkan nama rutenya ke daftar `$routes` di `index.php`.
 3. Gunakan `includes/header.php`, `includes/sidebar.php` bila perlu, dan `includes/footer.php`.
 4. Letakkan aksi backend baru di folder fitur yang sesuai di `api/`.
+## Konfigurasi produksi
+
+Atur SIRAH_ENV=production serta SIRAH_DB_HOST, SIRAH_DB_USER, SIRAH_DB_PASSWORD, dan SIRAH_DB_NAME pada environment Apache/PHP. Akun operator baru hanya dibuat otomatis bila SIRAH_BOOTSTRAP_OPERATOR_PASSWORD diberikan dengan panjang minimal 16 karakter; hapus nilai bootstrap setelah akun dibuat.

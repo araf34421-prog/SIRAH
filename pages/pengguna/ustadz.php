@@ -116,11 +116,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_ustadz'])) {
 }
 
 // === 3. PROSES HAPUS USTADZ / USTADZAH ===
-if (isset($_GET['hapus'])) {
-    $id = (int) $_GET['hapus'];
-    mysqli_query($conn, "UPDATE halaqah SET id_ustadz = NULL WHERE id_ustadz = $id");
-    mysqli_query($conn, "DELETE FROM users WHERE id = $id AND role = 'ustadz'");
-    $_SESSION['success'] = "Data pengajar (Ustadz/Ustadzah) berhasil dihapus.";
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus'])) {
+    $id = (int) $_POST['hapus'];
+    if (!in_array($_SESSION['role'], ['operator', 'pimpinan'], true)) {
+        $_SESSION['error'] = 'Hanya operator atau pimpinan yang dapat menghapus akun pengajar.';
+    } else {
+        mysqli_query($conn, "UPDATE halaqah SET id_ustadz = NULL WHERE id_ustadz = $id");
+        mysqli_query($conn, "DELETE FROM users WHERE id = $id AND role = 'ustadz'");
+        $_SESSION['success'] = "Data pengajar (Ustadz/Ustadzah) berhasil dihapus.";
+    }
     header("Location: kelola-ustadz.php");
     exit;
 }
@@ -238,7 +242,7 @@ include __DIR__ . '/../../includes/header.php';
                 </button>
             </div>
 
-            <form method="POST" class="p-6" autocomplete="off">
+            <form method="POST" class="p-6" autocomplete="off"><?php echo csrfTokenField(); ?>
                 <input type="hidden" name="tambah_ustadz" value="1">
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -306,7 +310,7 @@ include __DIR__ . '/../../includes/header.php';
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Password Default <span class="text-rose-500">*</span></label>
                         <div class="relative">
                             <i data-lucide="key-round" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
-                            <input type="text" name="password" id="inputPasswordPengajar" value="ustadz123" required 
+                            <input type="password" name="password" id="inputPasswordPengajar" minlength="12" autocomplete="new-password" required 
                                 class="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
                         </div>
                     </div>
@@ -454,7 +458,7 @@ include __DIR__ . '/../../includes/header.php';
                 </button>
             </div>
 
-            <form method="POST" class="p-6 space-y-4" autocomplete="off">
+            <form method="POST" class="p-6 space-y-4" autocomplete="off"><?php echo csrfTokenField(); ?>
                 <input type="hidden" name="edit_ustadz" value="1">
                 <input type="hidden" name="id_user" id="edit_id_user">
 

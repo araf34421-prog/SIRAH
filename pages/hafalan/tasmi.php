@@ -11,6 +11,8 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'u
 
 $id_ustadz = (int) $_SESSION['user_id'];
 $role      = $_SESSION['role'];
+$where_binaan = getFilterSantriBinaanSQL($conn, $id_ustadz, $role, 's');
+$and_binaan = $where_binaan !== '' ? ' AND ' . preg_replace('/^\s*WHERE\s+/i', '', $where_binaan) : '';
 
 // Pastikan kolom juz & pojok ada di tabel hafalan
 $cek_juz = mysqli_query($conn, "SHOW COLUMNS FROM hafalan LIKE 'juz'");
@@ -20,16 +22,15 @@ if ($cek_juz && mysqli_num_rows($cek_juz) === 0) {
 }
 
 // Hapus riwayat tasmi jika diminta
-if (isset($_GET['hapus'])) {
-    $id_hapus = (int) $_GET['hapus'];
-    mysqli_query($conn, "DELETE FROM hafalan WHERE id = $id_hapus AND jenis = 'tasmi'");
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus'])) {
+    $id_hapus = (int) $_POST['hapus'];
+    mysqli_query($conn, "DELETE h FROM hafalan h JOIN santri s ON s.id = h.id_santri WHERE h.id = $id_hapus AND h.jenis = 'tasmi' $and_binaan");
     $_SESSION['success'] = "Data ujian tasmi' berhasil dihapus.";
     header("Location: input_tasmi.php");
     exit;
 }
 
 // Filter santri khusus lokal binaan Ustadz/Ustadzah
-$where_binaan = getFilterSantriBinaanSQL($conn, $id_ustadz, $role, 's');
 $santri_query = "SELECT s.id, s.nama, s.nis, h.nama_halaqah 
                  FROM santri s 
                  LEFT JOIN halaqah h ON s.id_halaqah = h.id 
@@ -38,7 +39,6 @@ $santri_query = "SELECT s.id, s.nama, s.nis, h.nama_halaqah
 $santri_list = mysqli_fetch_all(mysqli_query($conn, $santri_query), MYSQLI_ASSOC);
 
 // Riwayat ujian tasmi (menampilkan 25 ujian terakhir dari santri binaan)
-$and_binaan = !empty($where_binaan) ? str_replace('WHERE', 'AND', $where_binaan) : '';
 $riwayat_query = "SELECT h.*, s.nama as nama_santri, s.nama_ortu, s.no_hp_ortu, hl.nama_halaqah 
                   FROM hafalan h 
                   JOIN santri s ON h.id_santri = s.id 
@@ -110,7 +110,7 @@ include __DIR__ . '/../../includes/header.php';
                 <span class="text-xs text-slate-500">Santri yang lulus berhak mendapatkan <b>Syahadah Tasmi'</b></span>
             </div>
 
-            <form action="proses_input_hafalan.php" method="POST" class="p-6" autocomplete="off">
+            <form action="proses_input_hafalan.php" method="POST" class="p-6" autocomplete="off"><?php echo csrfTokenField(); ?>
                 <input type="hidden" name="jenis" value="tasmi">
                 <input type="hidden" name="ayat_awal" value="1">
                 <input type="hidden" name="ayat_akhir" value="1">

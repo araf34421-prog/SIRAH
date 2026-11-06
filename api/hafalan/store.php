@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 startAppSession();
 require __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/init_rbac.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'])) {
     header("Location: login.php");
@@ -19,6 +20,10 @@ if ($cek_pojok && mysqli_num_rows($cek_pojok) === 0) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!santriDalamBinaan($conn, (int) ($_POST['id_santri'] ?? 0), (int) $_SESSION['user_id'], $_SESSION['role'])) {
+        http_response_code(403);
+        exit('Akses santri ditolak.');
+    }
     $id_santri  = (int) $_POST['id_santri'];
     $jenis      = mysqli_real_escape_string($conn, $_POST['jenis'] ?? 'ziyadah');
     $juz        = !empty($_POST['juz']) ? (int) $_POST['juz'] : 'NULL';

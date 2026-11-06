@@ -11,6 +11,8 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'u
 
 $id_ustadz = (int) $_SESSION['user_id'];
 $role      = $_SESSION['role'];
+$where_binaan = getFilterSantriBinaanSQL($conn, $id_ustadz, $role, 's');
+$and_binaan = $where_binaan !== '' ? ' AND ' . preg_replace('/^\s*WHERE\s+/i', '', $where_binaan) : '';
 
 // Pastikan seluruh kolom yang dibutuhkan ada di tabel target_hafalan (auto-migrasi)
 $kolom_target = [
@@ -61,17 +63,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Hapus Target jika diminta
-if (isset($_GET['hapus'])) {
-    $id_hapus = (int) $_GET['hapus'];
-    mysqli_query($conn, "DELETE FROM target_hafalan WHERE id = $id_hapus");
-    $_SESSION['success'] = "Data target hafalan berhasil dihapus.";
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus'])) {
+    $id_hapus = (int) $_POST['hapus'];
+    $deleted = mysqli_query($conn, "DELETE t FROM target_hafalan t JOIN santri s ON s.id = t.id_santri WHERE t.id = $id_hapus $and_binaan");
+    $_SESSION['success'] = $deleted && mysqli_affected_rows($conn) > 0
+        ? "Data target hafalan berhasil dihapus."
+        : "Target tidak ditemukan atau berada di luar kewenangan Anda.";
     header("Location: target_santri.php");
     exit;
 }
 
 // Filter santri khusus binaan Ustadz/Ustadzah yang login
-$where_binaan = getFilterSantriBinaanSQL($conn, $id_ustadz, $role, 's');
-
 $santri_query = "SELECT s.id, s.nama, s.nis, h.nama_halaqah 
                  FROM santri s 
                  LEFT JOIN halaqah h ON s.id_halaqah = h.id 
@@ -147,7 +149,7 @@ include __DIR__ . '/../../includes/header.php';
                     </span>
                 </div>
 
-                <form method="POST" id="formTarget" class="p-6 space-y-5" autocomplete="off">
+                <form method="POST" id="formTarget" class="p-6 space-y-5" autocomplete="off"><?php echo csrfTokenField(); ?>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1.5">Pilih Santri Binaan <span class="text-rose-500">*</span></label>

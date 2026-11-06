@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 startAppSession();
 require __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/init_rbac.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'])) {
     header("Location: login.php");
@@ -16,16 +17,15 @@ if ($cek_juz && mysqli_num_rows($cek_juz) === 0) {
 }
 
 // Hapus riwayat setoran jika diminta
-if (isset($_GET['hapus'])) {
-    $id_hapus = (int) $_GET['hapus'];
-    mysqli_query($conn, "DELETE FROM hafalan WHERE id = $id_hapus AND jenis = 'ziyadah'");
+$where_binaan = getFilterSantriBinaanSQL($conn, (int) $_SESSION['user_id'], $_SESSION['role'], 's');
+$and_binaan = $where_binaan !== '' ? ' AND ' . preg_replace('/^\s*WHERE\s+/i', '', $where_binaan) : '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus'])) {
+    $id_hapus = (int) $_POST['hapus'];
+    mysqli_query($conn, "DELETE h FROM hafalan h JOIN santri s ON s.id = h.id_santri WHERE h.id = $id_hapus AND h.jenis = 'ziyadah' $and_binaan");
     $_SESSION['success'] = "Data setoran ziyadah berhasil dihapus.";
     header("Location: input_ziyadah.php");
     exit;
 }
-
-require_once __DIR__ . '/../../includes/init_rbac.php';
-$where_binaan = getFilterSantriBinaanSQL($conn, $_SESSION['user_id'], $_SESSION['role'], 's');
 
 // Ambil daftar santri khusus lokal binaan Ustadz/Ustadzah yang login
 $santri_query = "SELECT s.id, s.nama, s.nis, h.nama_halaqah 
@@ -141,7 +141,7 @@ include __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
 
-            <form action="proses_input_hafalan.php" method="POST" class="p-6" autocomplete="off">
+            <form action="proses_input_hafalan.php" method="POST" class="p-6" autocomplete="off"><?php echo csrfTokenField(); ?>
                 <input type="hidden" name="jenis" value="ziyadah">
 
                 <!-- BARIS 1: PILIH SANTRI & TANGGAL -->

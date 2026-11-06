@@ -11,7 +11,12 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'p
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama_lengkap = mysqli_real_escape_string($conn, $_POST['nama_lengkap']);
     $username = mysqli_real_escape_string($conn, $_POST['username']);
-    $password = $_POST['password'];
+    $password = (string) ($_POST['password'] ?? '');
+    if (strlen($password) < 12) {
+        $_SESSION['error'] = 'Password akun pengajar minimal 12 karakter.';
+        header("Location: kelola-ustadz.php");
+        exit;
+    }
     $role = 'ustadz'; 
 
     $check = mysqli_query($conn, "SELECT id FROM users WHERE username = '$username'");

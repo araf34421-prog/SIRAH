@@ -238,7 +238,7 @@ include __DIR__ . '/../../includes/header.php';
         <?php endif; ?>
 
         <!-- FORM UTAMA INPUT LEGER -->
-        <form action="proses_input_rapor.php" method="POST" class="space-y-6">
+        <form action="proses_input_rapor.php" method="POST" class="space-y-6"><?php echo csrfTokenField(); ?>
             <input type="hidden" name="id_santri" value="<?= $id_santri ?>">
             <input type="hidden" name="juz" value="<?= $juz ?>">
             <input type="hidden" name="semester" value="<?= htmlspecialchars($semester) ?>">

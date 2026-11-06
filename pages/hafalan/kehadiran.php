@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 startAppSession();
 require __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/init_rbac.php';
 
 // Keamanan: Hanya Operator, Ustadz/ah, dan Pimpinan
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'])) {
@@ -36,6 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
 
     foreach ($_POST['status'] as $id_santri => $st_raw) {
         $id_s       = (int) $id_santri;
+        if (!santriDalamBinaan($conn, $id_s, $id_ustadz, $role)) {
+            continue;
+        }
         $status_fix = $map_lengkap[$st_raw] ?? 'Hadir';
         $keterangan = mysqli_real_escape_string($conn, trim($_POST['keterangan'][$id_s] ?? ''));
         
@@ -180,7 +184,7 @@ include __DIR__ . '/../../includes/header.php';
     <?php else: ?>
 
     <!-- Form Absensi Massal -->
-    <form method="POST" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-10">
+    <form method="POST" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-10"><?php echo csrfTokenField(); ?>
         <input type="hidden" name="tanggal" value="<?= htmlspecialchars($tanggal) ?>">
         <input type="hidden" name="id_lokal" value="<?= $id_lokal ?>">
         

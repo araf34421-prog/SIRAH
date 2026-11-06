@@ -123,7 +123,7 @@ include __DIR__ . '/../../includes/header.php';
                 </button>
             </div>
 
-            <form action="proses_tambah_santri.php" method="POST" class="p-6" autocomplete="off">
+            <form action="proses_tambah_santri.php" method="POST" class="p-6" autocomplete="off"><?php echo csrfTokenField(); ?>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     
                     <!-- Kolom Kiri: Biodata Santri -->
@@ -237,7 +237,7 @@ include __DIR__ . '/../../includes/header.php';
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-medium text-slate-500 mb-1">Password Default</label>
-                                    <input type="text" name="password_ortu" value="ortu123" required
+                                    <input type="password" name="password_ortu" minlength="12" autocomplete="new-password" required
                                         class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-mono text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none">
                                 </div>
                             </div>
@@ -441,7 +441,7 @@ include __DIR__ . '/../../includes/header.php';
                 </button>
             </div>
 
-            <form action="proses_edit_santri.php" method="POST" class="p-6 space-y-5" autocomplete="off">
+            <form action="proses_edit_santri.php" method="POST" class="p-6 space-y-5" autocomplete="off"><?php echo csrfTokenField(); ?>
                 <input type="hidden" name="id_santri" id="edit_id_santri">
                 <input type="hidden" name="id_user_ortu" id="edit_id_user_ortu">
 

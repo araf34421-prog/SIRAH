@@ -272,7 +272,7 @@ include __DIR__ . '/../../includes/header.php';
                             </div>
                         </div>
 
-                        <form method="POST" class="m-0">
+                        <form method="POST" class="m-0"><?php echo csrfTokenField(); ?>
                             <input type="hidden" name="toggle_status_pr" value="1">
                             <input type="hidden" name="id_pr" value="<?= $p['id'] ?>">
                             <input type="hidden" name="status_sekarang" value="<?= $status ?>">

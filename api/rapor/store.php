@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 startAppSession();
 require __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/init_rbac.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'])) {
     header("Location: login.php");
@@ -63,6 +64,10 @@ foreach ($extra_cols as $col_name => $col_def) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!santriDalamBinaan($conn, (int) ($_POST['id_santri'] ?? 0), (int) $_SESSION['user_id'], $_SESSION['role'])) {
+        http_response_code(403);
+        exit('Akses santri ditolak.');
+    }
     $id_santri    = (int) $_POST['id_santri'];
     $kelas        = mysqli_real_escape_string($conn, trim($_POST['kelas']));
     $judul_materi = mysqli_real_escape_string($conn, trim($_POST['judul_materi']));

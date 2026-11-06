@@ -139,7 +139,7 @@ include __DIR__ . '/../../includes/header.php';
                         </div>
                     </div>
 
-                    <form method="POST" class="p-6 space-y-4" autocomplete="off">
+                    <form method="POST" class="p-6 space-y-4" autocomplete="off"><?php echo csrfTokenField(); ?>
                         <input type="hidden" name="update_profil" value="1">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">Informasi Dasar Akun</h3>
 
@@ -201,7 +201,7 @@ include __DIR__ . '/../../includes/header.php';
                         </div>
                     </div>
 
-                    <form method="POST" class="p-6 space-y-4" autocomplete="off">
+                    <form method="POST" class="p-6 space-y-4" autocomplete="off"><?php echo csrfTokenField(); ?>
                         <input type="hidden" name="ganti_password" value="1">
 
                         <div>

@@ -20,7 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama_ortu      = mysqli_real_escape_string($conn, $_POST['nama_ortu']);
     $no_hp_ortu     = mysqli_real_escape_string($conn, $_POST['no_hp_ortu']);
     $username_ortu  = mysqli_real_escape_string($conn, $_POST['username_ortu']);
-    $password_ortu  = $_POST['password_ortu'];
+    $password_ortu  = (string) ($_POST['password_ortu'] ?? '');
+    if (strlen($password_ortu) < 12) {
+        $_SESSION['error'] = 'Password akun orang tua minimal 12 karakter.';
+        header("Location: kelola_santri.php");
+        exit;
+    }
     $id_halaqah     = !empty($_POST['id_halaqah']) ? (int) $_POST['id_halaqah'] : "NULL";
 
     $check = mysqli_query($conn, "SELECT id FROM users WHERE username = '$username_ortu'");

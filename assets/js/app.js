@@ -8,6 +8,38 @@ function readPageData() {
     if (!el) return {};
     try { return JSON.parse(el.textContent); } catch (error) { console.error('Data halaman tidak valid.', error); return {}; }
 }
+// Turn legacy destructive links into CSRF-protected POST requests.
+document.addEventListener('click', (event) => {
+    if (event.defaultPrevented) return;
+    const domTarget = event.target;
+    const link = domTarget instanceof Element ? domTarget.closest('a[href]') : null;
+    if (!link) return;
+    const target = new URL(link.href, window.location.href);
+    const isDeleteAction = [...target.searchParams.keys()].some((key) =>
+        ['hapus', 'hapus_user', 'hapus_kelas', 'keluarkan_santri'].includes(key)
+    ) || /proses_hapus_(santri|ustadz)\.php$/.test(target.pathname);
+    if (!isDeleteAction) return;
+
+    event.preventDefault();
+    const csrf = document.querySelector('input[name="csrf_token"]')?.value;
+    if (!csrf) {
+        window.alert('Token keamanan tidak ditemukan. Muat ulang halaman lalu coba kembali.');
+        return;
+    }
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = target.pathname;
+    const token = document.createElement('input');
+    token.type = 'hidden'; token.name = 'csrf_token'; token.value = csrf;
+    form.appendChild(token);
+    target.searchParams.forEach((value, key) => {
+        const input = document.createElement('input');
+        input.type = 'hidden'; input.name = key; input.value = value;
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+});
 const pageInitializers = {
     'kelola_santri': () => {
         // Buka / Tutup Form Tambah Santri

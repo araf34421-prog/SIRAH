@@ -136,8 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_kelas']) && $is_
 }
 
 // === 4. HAPUS KELAS / LOKAL (KHUSUS OPERATOR / PIMPINAN) ===
-if (isset($_GET['hapus_kelas']) && $is_pengelola_penuh) {
-    $id_hapus = (int) $_GET['hapus_kelas'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus_kelas']) && $is_pengelola_penuh) {
+    $id_hapus = (int) $_POST['hapus_kelas'];
     mysqli_query($conn, "UPDATE santri SET id_halaqah = NULL WHERE id_halaqah = $id_hapus");
     mysqli_query($conn, "DELETE FROM halaqah WHERE id = $id_hapus");
     $_SESSION['success'] = "Data lokal berhasil dihapus.";
@@ -159,9 +159,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_santri'])) {
 }
 
 // === 6. KELUARKAN SANTRI DARI KELAS ===
-if (isset($_GET['keluarkan_santri']) && isset($_GET['id_kelas'])) {
-    $id_s = (int) $_GET['keluarkan_santri'];
-    $id_k = (int) $_GET['id_kelas'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['keluarkan_santri']) && isset($_POST['id_kelas'])) {
+    $id_s = (int) $_POST['keluarkan_santri'];
+    $id_k = (int) $_POST['id_kelas'];
     mysqli_query($conn, "UPDATE santri SET id_halaqah = NULL WHERE id = $id_s");
     $_SESSION['success'] = "Santri berhasil dikeluarkan dari lokal.";
     header("Location: kelola_kelas.php?id_kelas=$id_k");
@@ -285,7 +285,7 @@ include __DIR__ . '/../../includes/header.php';
             <?php if ($is_pengelola_penuh): ?>
             <div class="flex flex-wrap items-center gap-2.5">
                 <?php if (empty($kelas_list)): ?>
-                <form method="POST" class="m-0">
+                <form method="POST" class="m-0"><?php echo csrfTokenField(); ?>
                     <input type="hidden" name="seed_default_lokal" value="1">
                     <button type="submit" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold py-2.5 px-4 rounded-xl transition shadow-sm flex items-center gap-2 text-xs">
                         <i data-lucide="database" class="w-4 h-4 text-indigo-600"></i>
@@ -643,7 +643,7 @@ include __DIR__ . '/../../includes/header.php';
                 </h3>
                 <button type="button" onclick="tutupModalTambahKelas()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <form method="POST" class="p-6 space-y-4" autocomplete="off">
+            <form method="POST" class="p-6 space-y-4" autocomplete="off"><?php echo csrfTokenField(); ?>
                 <input type="hidden" name="tambah_kelas" value="1">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nama Lokal / Kelas <span class="text-rose-500">*</span></label>
@@ -693,7 +693,7 @@ include __DIR__ . '/../../includes/header.php';
                 </h3>
                 <button type="button" onclick="tutupModalEditKelas()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <form method="POST" class="p-6 space-y-4" autocomplete="off">
+            <form method="POST" class="p-6 space-y-4" autocomplete="off"><?php echo csrfTokenField(); ?>
                 <input type="hidden" name="edit_kelas" value="1">
                 <input type="hidden" name="id_kelas" id="edit_id_kelas">
                 <div>
@@ -739,7 +739,7 @@ include __DIR__ . '/../../includes/header.php';
                 </div>
                 <button type="button" onclick="tutupModalAssignSantri()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <form method="POST" class="p-6">
+            <form method="POST" class="p-6"><?php echo csrfTokenField(); ?>
                 <input type="hidden" name="assign_santri" value="1">
                 <input type="hidden" name="id_kelas" value="<?= $kelas_aktif['id'] ?>">
 

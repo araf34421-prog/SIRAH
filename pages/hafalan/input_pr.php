@@ -21,10 +21,13 @@ if ($cek_kolom_pr && mysqli_num_rows($cek_kolom_pr) === 0) {
 }
 
 // Hapus PR jika diminta
-if (isset($_GET['hapus'])) {
-    $id_hapus = (int) $_GET['hapus'];
-    mysqli_query($conn, "DELETE FROM pr WHERE id = $id_hapus");
-    $_SESSION['success'] = "Data Tugas Rumah (PR) berhasil dihapus.";
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus'])) {
+    $id_hapus = (int) $_POST['hapus'];
+    $filter_pemilik = $is_pengelola_penuh ? '' : " AND id_ustadz = $id_ustadz";
+    $deleted = mysqli_query($conn, "DELETE FROM pr WHERE id = $id_hapus $filter_pemilik");
+    $_SESSION['success'] = $deleted && mysqli_affected_rows($conn) > 0
+        ? "Data Tugas Rumah (PR) berhasil dihapus."
+        : "Data PR tidak ditemukan atau berada di luar kewenangan Anda.";
     header("Location: input_pr.php");
     exit;
 }
@@ -145,7 +148,7 @@ include __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
 
-            <form method="POST" class="p-6" autocomplete="off">
+            <form method="POST" class="p-6" autocomplete="off"><?php echo csrfTokenField(); ?>
                 
                 <!-- BARIS 1: PILIH SANTRI, TANGGAL, DAN JUDUL TUGAS -->
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-5 mb-5">

@@ -113,7 +113,7 @@ include __DIR__ . '/../../includes/header.php';
                 <?php endif; ?>
 
                 <!-- Form Input -->
-                <form action="proses_login.php" method="POST" class="space-y-5" autocomplete="off">
+                <form action="proses_login.php" method="POST" class="space-y-5" autocomplete="off"><?php echo csrfTokenField(); ?>
                     
                     <!-- Username -->
                     <div>

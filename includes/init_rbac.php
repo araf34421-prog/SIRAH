@@ -19,12 +19,14 @@ if ($cek_jk_u && mysqli_num_rows($cek_jk_u) === 0) {
     mysqli_query($conn, "ALTER TABLE users ADD COLUMN jenis_kelamin ENUM('L','P') DEFAULT 'L' AFTER nama_lengkap");
 }
 
-// 2. Buat akun Operator Default jika belum ada sama sekali (user: operator | pass: operator123)
+// 2. Bootstrap akun operator hanya jika password kuat diberikan lewat environment.
 $cek_op = mysqli_query($conn, "SELECT id FROM users WHERE role = 'operator' LIMIT 1");
-if ($cek_op && mysqli_num_rows($cek_op) === 0) {
-    $pass_op = password_hash('operator123', PASSWORD_DEFAULT);
+$bootstrap_operator_password = getenv('SIRAH_BOOTSTRAP_OPERATOR_PASSWORD');
+if ($cek_op && mysqli_num_rows($cek_op) === 0 && is_string($bootstrap_operator_password) && strlen($bootstrap_operator_password) >= 16) {
+    $pass_op = password_hash($bootstrap_operator_password, PASSWORD_DEFAULT);
     mysqli_query($conn, "INSERT INTO users (username, password, nama_lengkap, role) VALUES ('operator', '$pass_op', 'Operator Utama Sistem', 'operator')");
 }
+unset($bootstrap_operator_password);
 
 // 3. Buat tabel `hak_akses_menu` untuk mengatur izin menu per aktor secara dinamis
 mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `hak_akses_menu` (

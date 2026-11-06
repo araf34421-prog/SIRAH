@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/auth.php';
 startAppSession();
 require __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/init_rbac.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'])) {
     header("Location: login.php");
@@ -10,6 +11,10 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'u
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_santri     = (int) $_POST['id_santri'];
+    if (!santriDalamBinaan($conn, $id_santri, (int) $_SESSION['user_id'], $_SESSION['role'])) {
+        http_response_code(403);
+        exit('Akses santri ditolak.');
+    }
     $id_user_ortu  = (int) $_POST['id_user_ortu'];
     $nama_santri   = mysqli_real_escape_string($conn, trim($_POST['nama_santri']));
     $nis           = mysqli_real_escape_string($conn, trim($_POST['nis']));
@@ -20,6 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $no_hp_ortu    = mysqli_real_escape_string($conn, trim($_POST['no_hp_ortu']));
     $username_ortu = mysqli_real_escape_string($conn, trim($_POST['username_ortu']));
     $password_baru = trim($_POST['password_baru'] ?? '');
+    if ($password_baru !== '' && strlen($password_baru) < 12) {
+        $_SESSION['error'] = 'Password baru minimal 12 karakter.';
+        header("Location: kelola_santri.php");
+        exit;
+    }
     $id_halaqah    = !empty($_POST['id_halaqah']) ? (int) $_POST['id_halaqah'] : "NULL";
 
     // 1. Cek duplikasi NIS pada santri lain
@@ -46,9 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_query($conn, "UPDATE users SET username = '$username_ortu', nama_lengkap = '$nama_ortu' WHERE id = $id_user_ortu");
         }
     } elseif (!empty($username_ortu)) {
-        // Jika santri lama belum memiliki akun ortu, buatkan otomatis
-        $pass_default = !empty($password_baru) ? $password_baru : 'ortu123';
-        $hash = password_hash($pass_default, PASSWORD_DEFAULT);
+        // Akun baru hanya dibuat dengan password yang ditentukan operator.
+        if ($password_baru === '') {
+            $_SESSION['error'] = 'Isi password minimal 12 karakter untuk membuat akun orang tua.';
+            header("Location: kelola_santri.php");
+            exit;
+        }
+        $hash = password_hash($password_baru, PASSWORD_DEFAULT);
         if (mysqli_query($conn, "INSERT INTO users (username, password, nama_lengkap, role) VALUES ('$username_ortu', '$hash', '$nama_ortu', 'ortu')")) {
             $id_user_ortu = mysqli_insert_id($conn);
         }

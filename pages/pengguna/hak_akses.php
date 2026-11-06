@@ -54,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_akun_actor']))
 }
 
 // === 3. HAPUS AKUN PENGELOLA ===
-if (isset($_GET['hapus_user'])) {
-    $id_hapus = (int)$_GET['hapus_user'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hapus_user'])) {
+    $id_hapus = (int)$_POST['hapus_user'];
     if ($id_hapus !== (int)$_SESSION['user_id']) {
         mysqli_query($conn, "DELETE FROM users WHERE id = $id_hapus");
         $_SESSION['success'] = "Akun pengguna berhasil dihapus.";
@@ -169,7 +169,7 @@ include __DIR__ . '/../../includes/header.php';
         <?php endif; ?>
 
         <!-- TABEL MATRIKS HAK AKSES MENU PER ACTOR -->
-        <form method="POST" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
+        <form method="POST" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8"><?php echo csrfTokenField(); ?>
             <input type="hidden" name="simpan_hak_akses" value="1">
             
             <div class="px-6 py-4 border-b border-slate-200 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4">
@@ -325,7 +325,7 @@ include __DIR__ . '/../../includes/header.php';
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            <form method="POST" class="p-6 space-y-4" autocomplete="off">
+            <form method="POST" class="p-6 space-y-4" autocomplete="off"><?php echo csrfTokenField(); ?>
                 <input type="hidden" name="tambah_akun_actor" value="1">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Actor / Role</label>
@@ -344,7 +344,7 @@ include __DIR__ . '/../../includes/header.php';
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
-                    <input type="text" name="password" value="operator123" required class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-mono">
+                    <input type="password" name="password" required minlength="12" autocomplete="new-password" placeholder="Gunakan password sementara yang kuat" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-mono">
                 </div>
                 <div class="pt-2 flex justify-end gap-2">
                     <button type="button" onclick="document.getElementById('modalTambahActor').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold">Batal</button>

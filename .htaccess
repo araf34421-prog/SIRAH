@@ -1,5 +1,16 @@
 # Preserve legacy SIRAH URLs without keeping root-level wrapper files.
+Options -Indexes
 RewriteEngine On
+
+# Keep source dumps and database files out of public HTTP access.
+<FilesMatch "(?i)\.(sql|txt)$">
+    Require all denied
+</FilesMatch>
+
+# Helper/config PHP files are only loaded internally by the application.
+<FilesMatch "^(database|auth|footer|functions|head_assets|header|init_rbac|page_data|sidebar)\.php$">
+    Require all denied
+</FilesMatch>
 
 # Page routes
 RewriteRule ^absensi_anak\.php$ index.php?page=absensi_anak [QSA,L]
@@ -20,6 +31,7 @@ RewriteRule ^profil_saya\.php$ index.php?page=profil_saya [QSA,L]
 RewriteRule ^progres_santri\.php$ index.php?page=progres_santri [QSA,L]
 RewriteRule ^pr_anak\.php$ index.php?page=pr_anak [QSA,L]
 RewriteRule ^rapor_santri\.php$ index.php?page=rapor_santri [QSA,L]
+RewriteRule ^cetak_syahadah\.php$ index.php?page=syahadah [QSA,L]
 RewriteRule ^rekap_bulanan\.php$ index.php?page=rekap_bulanan [QSA,L]
 RewriteRule ^target_santri\.php$ index.php?page=target_santri [QSA,L]
 
