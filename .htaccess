@@ -1,0 +1,36 @@
+# Preserve legacy SIRAH URLs without keeping root-level wrapper files.
+RewriteEngine On
+
+# Page routes
+RewriteRule ^absensi_anak\.php$ index.php?page=absensi_anak [QSA,L]
+RewriteRule ^dashboard\.php$ index.php?page=dashboard [QSA,L]
+RewriteRule ^input_kehadiran\.php$ index.php?page=input_kehadiran [QSA,L]
+RewriteRule ^input_murajaah\.php$ index.php?page=input_murajaah [QSA,L]
+RewriteRule ^input_pr\.php$ index.php?page=input_pr [QSA,L]
+RewriteRule ^input_rapor\.php$ index.php?page=input_rapor [QSA,L]
+RewriteRule ^input_tasmi\.php$ index.php?page=input_tasmi [QSA,L]
+RewriteRule ^input_ziyadah\.php$ index.php?page=input_ziyadah [QSA,L]
+RewriteRule ^kelola-ustadz\.php$ index.php?page=kelola-ustadz [QSA,L]
+RewriteRule ^kelola_hak_akses\.php$ index.php?page=kelola_hak_akses [QSA,L]
+RewriteRule ^kelola_kelas\.php$ index.php?page=kelola_kelas [QSA,L]
+RewriteRule ^kelola_santri\.php$ index.php?page=kelola_santri [QSA,L]
+RewriteRule ^login\.php$ index.php?page=login [QSA,L]
+RewriteRule ^monitoring_anak\.php$ index.php?page=monitoring_anak [QSA,L]
+RewriteRule ^profil_saya\.php$ index.php?page=profil_saya [QSA,L]
+RewriteRule ^progres_santri\.php$ index.php?page=progres_santri [QSA,L]
+RewriteRule ^pr_anak\.php$ index.php?page=pr_anak [QSA,L]
+RewriteRule ^rapor_santri\.php$ index.php?page=rapor_santri [QSA,L]
+RewriteRule ^rekap_bulanan\.php$ index.php?page=rekap_bulanan [QSA,L]
+RewriteRule ^target_santri\.php$ index.php?page=target_santri [QSA,L]
+
+# Existing action URLs now execute their organized API handlers.
+RewriteRule ^logout\.php$ api/auth/logout.php [QSA,L]
+RewriteRule ^proses_login\.php$ api/auth/login.php [QSA,L]
+RewriteRule ^proses_input_hafalan\.php$ api/hafalan/store.php [QSA,L]
+RewriteRule ^proses_input_rapor\.php$ api/rapor/store.php [QSA,L]
+RewriteRule ^proses_tambah_santri\.php$ api/santri/store.php [QSA,L]
+RewriteRule ^proses_edit_santri\.php$ api/santri/update.php [QSA,L]
+RewriteRule ^proses_hapus_santri\.php$ api/santri/delete.php [QSA,L]
+RewriteRule ^proses_target_santri\.php$ api/santri/target.php [QSA,L]
+RewriteRule ^proses_tambah_ustadz\.php$ api/pengguna/store.php [QSA,L]
+RewriteRule ^proses_hapus_ustadz\.php$ api/pengguna/delete.php [QSA,L]

@@ -52,14 +52,6 @@ foreach ($sidebar_menus as $sm) {
     $grouped_sidebar[$sm['kategori']][] = $sm;
 }
 ?>
-<script src="https://unpkg.com/lucide@latest"></script>
-<style>
-    .sidebar-scroll::-webkit-scrollbar { width: 5px; }
-    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-    .sidebar-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
-    .sidebar-scroll:hover::-webkit-scrollbar-thumb { background: #334155; }
-</style>
-
 <aside class="w-64 bg-slate-950 text-slate-300 flex flex-col h-screen fixed left-0 top-0 border-r border-slate-800/80 shadow-2xl z-40 select-none">
     
     <!-- BRAND HEADER -->
@@ -148,4 +140,3 @@ foreach ($sidebar_menus as $sm) {
         </div>
     </div>
 </aside>
-<script>lucide.createIcons();</script>

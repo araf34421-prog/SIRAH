@@ -1,0 +1,382 @@
+<?php
+require_once __DIR__ . '/../../includes/auth.php';
+startAppSession();
+require __DIR__ . '/../../config/database.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
+$nama = $_SESSION['nama_lengkap'];
+$role = $_SESSION['role'];
+
+$chart_labels = [];
+$chart_ziyadah = [];
+$chart_murajaah = [];
+$stat = ['total_ayat' => 0, 'total_murajaah' => 0, 'total_tasmi' => 0, 'santri_aktif' => 0];
+$total_santri = 0;
+$total_ustadz = 0;
+$predikat_data = ['A' => 0, 'B' => 0, 'C' => 0];
+$aktivitas_list = [];
+$target_widget = ['total' => 0, 'tercapai' => 0, 'persentase' => 0, 'label' => ''];
+
+if (in_array($role, ['operator', 'ustadz', 'pimpinan'])) {
+    $total_santri = (int) mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM santri"))['total'];
+    $total_ustadz = (int) mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM users WHERE role = 'ustadz'"))['total'];
+
+    $bulan_ini = date('Y-m');
+    $stat_query = "SELECT 
+                    COUNT(DISTINCT id_santri) as santri_aktif,
+                    COALESCE(SUM(CASE WHEN jenis = 'ziyadah' THEN jumlah_ayat ELSE 0 END), 0) as total_ayat,
+                    COALESCE(SUM(CASE WHEN jenis = 'murajaah' THEN 1 ELSE 0 END), 0) as total_murajaah,
+                    COALESCE(SUM(CASE WHEN jenis = 'tasmi' THEN 1 ELSE 0 END), 0) as total_tasmi
+                  FROM hafalan 
+                  WHERE DATE_FORMAT(tanggal, '%Y-%m') = '$bulan_ini'";
+    $stat = mysqli_fetch_assoc(mysqli_query($conn, $stat_query));
+
+    for ($i = 5; $i >= 0; $i--) {
+        $bulan = date('Y-m', strtotime("-$i months"));
+        $chart_labels[] = date('M Y', strtotime("-$i months"));
+        $q = "SELECT 
+                COALESCE(SUM(CASE WHEN jenis = 'ziyadah' THEN jumlah_ayat ELSE 0 END), 0) as z,
+                COALESCE(SUM(CASE WHEN jenis = 'murajaah' THEN 1 ELSE 0 END), 0) as m
+              FROM hafalan WHERE DATE_FORMAT(tanggal, '%Y-%m') = '$bulan'";
+        $d = mysqli_fetch_assoc(mysqli_query($conn, $q));
+        $chart_ziyadah[] = (int) $d['z'];
+        $chart_murajaah[] = (int) $d['m'];
+    }
+
+    $predikat_res = mysqli_query($conn, "SELECT predikat, COUNT(*) as jumlah FROM hafalan WHERE DATE_FORMAT(tanggal, '%Y-%m') = '$bulan_ini' GROUP BY predikat");
+    while ($row = mysqli_fetch_assoc($predikat_res)) {
+        if (isset($predikat_data[$row['predikat']])) {
+            $predikat_data[$row['predikat']] = (int) $row['jumlah'];
+        }
+    }
+
+    $target_widget['label'] = in_array($role, ['operator', 'pimpinan']) ? 'Santri Mencapai Target Bulanan' : 'Realisasi Target Santri Binaan';
+    $target_widget['total'] = $total_santri;
+    $capaian_query = "SELECT COUNT(DISTINCT s.id) as tercapai
+                      FROM santri s
+                      JOIN target_hafalan t ON s.id = t.id_santri
+                      LEFT JOIN (
+                          SELECT id_santri, SUM(jumlah_ayat) as total_ayat
+                          FROM hafalan 
+                          WHERE jenis = 'ziyadah' AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan_ini'
+                          GROUP BY id_santri
+                      ) h ON s.id = h.id_santri
+                      WHERE (t.target_ayat_per_hari * 20) <= COALESCE(h.total_ayat, 0)";
+    $target_widget['tercapai'] = (int) mysqli_fetch_assoc(mysqli_query($conn, $capaian_query))['tercapai'];
+    $target_widget['persentase'] = $target_widget['total'] > 0 ? round(($target_widget['tercapai'] / $target_widget['total']) * 100) : 0;
+
+    $aktivitas_query = "SELECT h.*, s.nama as nama_santri, u.nama_lengkap as nama_ustadz
+                        FROM hafalan h
+                        JOIN santri s ON h.id_santri = s.id
+                        LEFT JOIN users u ON h.id_ustadz = u.id
+                        ORDER BY h.created_at DESC LIMIT 6";
+    $aktivitas_list = mysqli_fetch_all(mysqli_query($conn, $aktivitas_query), MYSQLI_ASSOC);
+
+} elseif ($role === 'ortu') {
+    $id_ortu = (int) $_SESSION['user_id'];
+    $santri = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM santri WHERE id_user_ortu = $id_ortu LIMIT 1"));
+
+    if ($santri) {
+        $id_santri = $santri['id'];
+        $bulan_ini = date('Y-m');
+
+        $stat_query = "SELECT 
+                        COALESCE(SUM(CASE WHEN jenis = 'ziyadah' THEN jumlah_ayat ELSE 0 END), 0) as total_ayat,
+                        COALESCE(SUM(CASE WHEN jenis = 'murajaah' THEN 1 ELSE 0 END), 0) as total_murajaah,
+                        COALESCE(SUM(CASE WHEN jenis = 'tasmi' THEN 1 ELSE 0 END), 0) as total_tasmi
+                      FROM hafalan 
+                      WHERE id_santri = $id_santri AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan_ini'";
+        $stat = mysqli_fetch_assoc(mysqli_query($conn, $stat_query));
+
+        for ($i = 5; $i >= 0; $i--) {
+            $bulan = date('Y-m', strtotime("-$i months"));
+            $chart_labels[] = date('M Y', strtotime("-$i months"));
+            $q = "SELECT 
+                    COALESCE(SUM(CASE WHEN jenis = 'ziyadah' THEN jumlah_ayat ELSE 0 END), 0) as z,
+                    COALESCE(SUM(CASE WHEN jenis = 'murajaah' THEN 1 ELSE 0 END), 0) as m
+                  FROM hafalan WHERE id_santri = $id_santri AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan'";
+            $d = mysqli_fetch_assoc(mysqli_query($conn, $q));
+            $chart_ziyadah[] = (int) $d['z'];
+            $chart_murajaah[] = (int) $d['m'];
+        }
+
+        $target_q = mysqli_query($conn, "SELECT target_ayat_per_hari FROM target_hafalan WHERE id_santri = $id_santri ORDER BY id DESC LIMIT 1");
+        $target_anak = ($target_q && mysqli_num_rows($target_q) > 0) ? mysqli_fetch_assoc($target_q) : null;
+        $target_ayat_harian = $target_anak ? (int) $target_anak['target_ayat_per_hari'] : 0;
+        
+        $target_widget['label'] = 'Capaian Target Bulanan Ananda';
+        $target_widget['total'] = $target_ayat_harian * 20;
+        $target_widget['tercapai'] = (int) $stat['total_ayat'];
+        $target_widget['persentase'] = $target_widget['total'] > 0 ? min(100, round(($target_widget['tercapai'] / $target_widget['total']) * 100)) : 0;
+
+        $aktivitas_query = "SELECT h.*, u.nama_lengkap as nama_ustadz
+                            FROM hafalan h
+                            LEFT JOIN users u ON h.id_ustadz = u.id
+                            WHERE h.id_santri = $id_santri
+                            ORDER BY h.created_at DESC LIMIT 6";
+        $aktivitas_list = mysqli_fetch_all(mysqli_query($conn, $aktivitas_query), MYSQLI_ASSOC);
+    }
+}
+?>
+<?php
+$page_title = "Dashboard - Surau Tahfizh Firdaus";
+include __DIR__ . '/../../includes/header.php';
+?>
+<body class="bg-slate-50 font-sans text-slate-800">
+
+    <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
+
+    <div class="ml-64 p-8">
+        
+        <!-- HERO BANNER -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-7 mb-8 text-white shadow-lg relative overflow-hidden">
+            <div class="relative z-10 flex flex-wrap items-center justify-between gap-6">
+                <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-semibold mb-3">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        <span>Portal <?= ucfirst($role) ?> • <?= date('d F Y') ?></span>
+                    </div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Ahlan wa Sahlan, <?= htmlspecialchars($nama) ?>!</h1>
+                    <p class="text-sm text-slate-300 mt-1.5 max-w-xl">
+                        <?php if ($role === 'ortu' && isset($santri)): ?>
+                            Pantau perkembangan hafalan Al-Qur'an ananda <b><?= htmlspecialchars($santri['nama']) ?></b> (NIS: <?= htmlspecialchars($santri['nis']) ?>) secara langsung.
+                        <?php else: ?>
+                            Berikut adalah ringkasan perkembangan hafalan, capaian target, dan aktivitas terbaru di Surau Tahfizh Firdaus.
+                        <?php endif; ?>
+                    </p>
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="flex flex-wrap gap-2.5">
+                    <?php if ($role === 'ustadz'): ?>
+                        <a href="input_ziyadah.php" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
+                            <i data-lucide="book-plus" class="w-4 h-4"></i> Input Ziyadah
+                        </a>
+                        <a href="input_rapor.php" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                            <i data-lucide="table-2" class="w-4 h-4"></i> Leger Rapor
+                        </a>
+                    <?php elseif (in_array($role, ['operator', 'pimpinan'])): ?>
+                        <a href="rekap_bulanan.php" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
+                            <i data-lucide="printer" class="w-4 h-4"></i> Cetak Rekap Bulanan
+                        </a>
+                        <a href="rapor_santri.php" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                            <i data-lucide="file-text" class="w-4 h-4"></i> Lihat Rapor
+                        </a>
+                    <?php elseif ($role === 'ortu'): ?>
+                        <a href="monitoring_anak.php" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
+                            <i data-lucide="line-chart" class="w-4 h-4"></i> Detail Progres
+                        </a>
+                        <a href="rapor_santri.php" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                            <i data-lucide="award" class="w-4 h-4"></i> Rapor Tahfidz
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- KARTU STATISTIK (KPI) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <?php if (in_array($role, ['operator', 'pimpinan'])): ?>
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Pengajar</p>
+                        <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $total_ustadz ?></p>
+                        <p class="text-xs text-slate-400 mt-1">Ustadz / Ustadzah</p>
+                    </div>
+                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                        <i data-lucide="user-check" class="w-6 h-6"></i>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <?php if (in_array($role, ['operator', 'ustadz', 'pimpinan'])): ?>
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Santri</p>
+                        <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $total_santri ?></p>
+                        <p class="text-xs text-emerald-600 font-medium mt-1"><?= $stat['santri_aktif'] ?? 0 ?> aktif setor bulan ini</p>
+                    </div>
+                    <div class="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center">
+                        <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Ziyadah Bulan Ini</p>
+                    <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $stat['total_ayat'] ?? 0 ?></p>
+                    <p class="text-xs text-slate-400 mt-1">Total ayat baru dihafal</p>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                    <i data-lucide="book-plus" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-blue-600 uppercase tracking-wider">Muraja'ah Bulan Ini</p>
+                    <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $stat['total_murajaah'] ?? 0 ?></p>
+                    <p class="text-xs text-slate-400 mt-1">Sesi pengulangan hafalan</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                    <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <?php if (!in_array($role, ['operator', 'pimpinan'])): ?>
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-purple-600 uppercase tracking-wider">Ujian Tasmi'</p>
+                    <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $stat['total_tasmi'] ?? 0 ?></p>
+                    <p class="text-xs text-slate-400 mt-1">Sesi ujian bulan ini</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                    <i data-lucide="award" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- GRAFIK TREN & DISTRIBUSI PREDIKAT -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm <?= in_array($role, ['operator', 'ustadz', 'pimpinan']) ? 'lg:col-span-2' : 'lg:col-span-3' ?>">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="trending-up" class="w-5 h-5 text-emerald-600"></i>
+                            <?= $role === 'ortu' ? 'Tren Hafalan Ananda (6 Bulan Terakhir)' : 'Grafik Pertumbuhan Hafalan Surau' ?>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Perbandingan capaian Ziyadah (ayat) dan frekuensi Muraja'ah</p>
+                    </div>
+                    <div class="flex gap-4 text-xs font-medium">
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-emerald-500 rounded-full"></span>Ziyadah (Ayat)</div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-blue-500 rounded-full"></span>Muraja'ah (Kali)</div>
+                    </div>
+                </div>
+                <div style="height: 290px;">
+                    <canvas id="progresChart"></canvas>
+                </div>
+            </div>
+
+            <?php if (in_array($role, ['operator', 'ustadz', 'pimpinan'])): ?>
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-600"></i> Kualitas Setoran
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Distribusi predikat bulan ini</p>
+                </div>
+                <div style="height: 190px;" class="my-4 flex items-center justify-center">
+                    <canvas id="predikatChart"></canvas>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-100">
+                        <span class="block font-bold text-emerald-700 text-sm"><?= $predikat_data['A'] ?></span>
+                        <span class="text-[11px] text-emerald-600">Predikat A</span>
+                    </div>
+                    <div class="p-2 rounded-xl bg-amber-50 border border-amber-100">
+                        <span class="block font-bold text-amber-700 text-sm"><?= $predikat_data['B'] ?></span>
+                        <span class="text-[11px] text-amber-600">Predikat B</span>
+                    </div>
+                    <div class="p-2 rounded-xl bg-rose-50 border border-rose-100">
+                        <span class="block font-bold text-rose-700 text-sm"><?= $predikat_data['C'] ?></span>
+                        <span class="text-[11px] text-rose-600">Predikat C</span>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- WIDGET TARGET & TIMELINE AKTIVITAS -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Capaian Target -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="target" class="w-5 h-5 text-indigo-600"></i>
+                                <?= $target_widget['label'] ?>
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-1">
+                                <?= $role === 'ortu' ? 'Dihitung dari target harian ananda × 20 hari efektif' : 'Proporsi santri yang memenuhi target bulanan' ?>
+                            </p>
+                        </div>
+                        <span class="text-2xl font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl"><?= $target_widget['persentase'] ?>%</span>
+                    </div>
+
+                    <div class="w-full bg-slate-100 rounded-full h-3.5 mb-3 overflow-hidden border border-slate-200">
+                        <div class="bg-gradient-to-r from-indigo-500 to-teal-500 h-full rounded-full transition-all duration-500" style="width: <?= $target_widget['persentase'] ?>%"></div>
+                    </div>
+
+                    <div class="flex justify-between text-xs font-medium text-slate-500">
+                        <span>Realisasi: <b class="text-slate-800"><?= $target_widget['tercapai'] ?> <?= $role === 'ortu' ? 'Ayat' : 'Santri' ?></b></span>
+                        <span>Target: <b class="text-slate-800"><?= $target_widget['total'] ?> <?= $role === 'ortu' ? 'Ayat' : 'Santri' ?></b></span>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span class="text-slate-400">Ingin melihat rincian lebih mendalam?</span>
+                    <a href="<?= $role === 'ortu' ? 'monitoring_anak.php' : 'progres_santri.php' ?>" class="text-indigo-600 hover:underline font-bold flex items-center gap-1">
+                        Buka Analisis Progres <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Aktivitas Terbaru -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2 mb-4">
+                    <i data-lucide="activity" class="w-5 h-5 text-indigo-600"></i> Aktivitas Setoran Terbaru
+                </h3>
+
+                <?php if (empty($aktivitas_list)): ?>
+                    <div class="text-center py-10 text-slate-400 text-xs">
+                        <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                        Belum ada aktivitas setoran yang tercatat.
+                    </div>
+                <?php else: ?>
+                    <div class="space-y-3">
+                        <?php foreach ($aktivitas_list as $akt): 
+                            $badge_jenis = $akt['jenis'] == 'ziyadah' ? 'bg-emerald-100 text-emerald-700' : ($akt['jenis'] == 'murajaah' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700');
+                        ?>
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="px-2 py-1 rounded-lg text-[10px] font-bold uppercase <?= $badge_jenis ?>"><?= $akt['jenis'] ?></span>
+                                    <div class="truncate">
+                                        <p class="text-xs font-bold text-slate-800 truncate">
+                                            <?= $role === 'ortu' ? htmlspecialchars($akt['surat']) : htmlspecialchars($akt['nama_santri']) . ' • ' . htmlspecialchars($akt['surat']) ?>
+                                        </p>
+                                        <p class="text-[11px] text-slate-400">
+                                            Ayat <?= $akt['ayat_awal'] ?>-<?= $akt['ayat_akhir'] ?> • <?= date('d M H:i', strtotime($akt['created_at'])) ?>
+                                        </p>
+                                    </div>
+                                </div>
+                                <span class="w-7 h-7 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 <?= $akt['predikat'] == 'A' ? 'bg-emerald-500 text-white' : ($akt['predikat'] == 'B' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white') ?>">
+                                    <?= $akt['predikat'] ?>
+                                </span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+        </div>
+
+    </div>
+
+    <?php
+$page_data = [
+    'chart_labels' => $chart_labels,
+    'chart_ziyadah' => $chart_ziyadah,
+    'chart_murajaah' => $chart_murajaah,
+    'predikat_data' => in_array($role, ['operator', 'ustadz', 'pimpinan']) ? $predikat_data : null,
+];
+include __DIR__ . '/../../includes/page_data.php';
+?>
+<?php include __DIR__ . '/../../includes/footer.php'; ?>
