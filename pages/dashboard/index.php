@@ -11,6 +11,9 @@ if (!isset($_SESSION['user_id'])) {
 $nama = $_SESSION['nama_lengkap'];
 $role = $_SESSION['role'];
 
+$jam_sekarang = (int) date('H');
+$sapaan_waktu = ($jam_sekarang >= 4 && $jam_sekarang < 11) ? 'Selamat Pagi' : (($jam_sekarang >= 11 && $jam_sekarang < 15) ? 'Selamat Siang' : (($jam_sekarang >= 15 && $jam_sekarang < 18) ? 'Selamat Sore' : 'Selamat Malam'));
+
 $chart_labels = [];
 $chart_ziyadah = [];
 $chart_murajaah = [];
@@ -54,7 +57,7 @@ if (in_array($role, ['operator', 'ustadz', 'pimpinan'])) {
         }
     }
 
-    $target_widget['label'] = in_array($role, ['operator', 'pimpinan']) ? 'Santri Mencapai Target Bulanan' : 'Realisasi Target Santri Binaan';
+    $target_widget['label'] = in_array($role, ['operator', 'pimpinan']) ? 'Realisasi Target Bulanan Lembaga' : 'Realisasi Target Santri Binaan';
     $target_widget['total'] = $total_santri;
     $capaian_query = "SELECT COUNT(DISTINCT s.id) as tercapai
                       FROM santri s
@@ -121,174 +124,195 @@ if (in_array($role, ['operator', 'ustadz', 'pimpinan'])) {
         $aktivitas_list = mysqli_fetch_all(mysqli_query($conn, $aktivitas_query), MYSQLI_ASSOC);
     }
 }
-?>
-<?php
-$page_title = "Dashboard - Surau Tahfizh Firdaus";
+
+$page_title = "Dashboard Eksekutif — SIRAH Surau Tahfizh Firdaus";
 include __DIR__ . '/../../includes/header.php';
 ?>
-<body class="bg-slate-50 font-sans text-slate-800">
+<body class="bg-slate-50 font-sans text-slate-900">
 
     <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
 
-    <div class="ml-64 p-8">
+    <div class="ml-64 p-8 max-w-[1440px]">
         
-        <!-- HERO BANNER -->
-        <div class="bg-gradient-to-br from-[#061B15] via-[#0B3529] to-[#061B15] islamic-pattern rounded-3xl p-8 mb-8 text-white shadow-xl border border-amber-500/30 relative overflow-hidden">
-            <!-- Ornamen Cahaya Emas di Sudut -->
-            <div class="absolute -top-24 -right-24 w-72 h-72 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400/60 to-transparent pointer-events-none"></div>
+        <!-- MODERN HERO GREETING BANNER -->
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-7 mb-7 shadow-xl border border-indigo-500/20">
+            <div class="pointer-events-none absolute -right-12 -top-12 w-64 h-64 rounded-full bg-indigo-500/20 blur-3xl"></div>
+            <div class="pointer-events-none absolute right-32 -bottom-16 w-52 h-52 rounded-full bg-emerald-500/15 blur-2xl"></div>
+
             <div class="relative z-10 flex flex-wrap items-center justify-between gap-6">
                 <div>
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-200 text-xs font-semibold mb-3">
-                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                        <span>Portal <?= ucfirst($role) ?> • <?= date('d F Y') ?></span>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-indigo-200 text-xs font-medium mb-3">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span><?= $sapaan_waktu ?>, <?= htmlspecialchars($nama) ?></span>
                     </div>
-                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Ahlan wa Sahlan, <?= htmlspecialchars($nama) ?>!</h1>
-                    <p class="text-sm text-slate-300 mt-1.5 max-w-xl">
+                    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                         <?php if ($role === 'ortu' && isset($santri)): ?>
-                            Pantau perkembangan hafalan Al-Qur'an ananda <b><?= htmlspecialchars($santri['nama']) ?></b> (NIS: <?= htmlspecialchars($santri['nis']) ?>) secara langsung.
+                            Pantauan Tahfizh: <?= htmlspecialchars($santri['nama']) ?>
                         <?php else: ?>
-                            Berikut adalah ringkasan perkembangan hafalan, capaian target, dan aktivitas terbaru di Surau Tahfizh Firdaus.
+                            Pusat Kendali Akademik & Tahfizh
                         <?php endif; ?>
+                    </h1>
+                    <p class="text-xs sm:text-sm text-slate-300 mt-1.5 max-w-xl">
+                        Pantau perkembangan setoran Ziyadah, konsistensi Muraja'ah, serta evaluasi capaian target santri secara *real-time*.
                     </p>
                 </div>
 
-                <!-- Quick Action Buttons -->
-                <div class="flex flex-wrap gap-2.5">
-                    <?php if ($role === 'ustadz'): ?>
-                        <a href="input_ziyadah.php" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
+                <!-- QUICK ACTION BUTTONS DI BANNER -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <?php if (in_array($role, ['ustadz', 'operator'])): ?>
+                        <a href="input_ziyadah.php" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-500/25">
                             <i data-lucide="book-plus" class="w-4 h-4"></i> Input Ziyadah
                         </a>
-                        <a href="input_rapor.php" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
-                            <i data-lucide="table-2" class="w-4 h-4"></i> Leger Rapor
+                        <a href="input_kehadiran.php" class="bg-white/10 hover:bg-white/20 text-white border border-white/15 font-semibold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                            <i data-lucide="calendar-check" class="w-4 h-4 text-indigo-300"></i> Presensi Harian
                         </a>
-                    <?php elseif (in_array($role, ['operator', 'pimpinan'])): ?>
-                        <a href="rekap_bulanan.php" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
-                            <i data-lucide="printer" class="w-4 h-4"></i> Cetak Rekap Bulanan
+                        <a href="input_rapor.php" class="bg-white/10 hover:bg-white/20 text-white border border-white/15 font-semibold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                            <i data-lucide="table-2" class="w-4 h-4 text-amber-300"></i> Leger Rapor
                         </a>
-                        <a href="rapor_santri.php" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
-                            <i data-lucide="file-text" class="w-4 h-4"></i> Lihat Rapor
+                    <?php elseif ($role === 'pimpinan'): ?>
+                        <a href="rekap_bulanan.php" class="bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-indigo-500/30">
+                            <i data-lucide="file-bar-chart" class="w-4 h-4"></i> Rekap Bulanan
+                        </a>
+                        <a href="rapor_santri.php" class="bg-white/10 hover:bg-white/20 text-white border border-white/15 font-semibold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                            <i data-lucide="printer" class="w-4 h-4 text-emerald-300"></i> Cetak Rapor
                         </a>
                     <?php elseif ($role === 'ortu'): ?>
-                        <a href="monitoring_anak.php" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-md">
-                            <i data-lucide="line-chart" class="w-4 h-4"></i> Detail Progres
+                        <a href="monitoring_anak.php" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-500/25">
+                            <i data-lucide="line-chart" class="w-4 h-4"></i> Progres Lengkap
                         </a>
-                        <a href="rapor_santri.php" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
-                            <i data-lucide="award" class="w-4 h-4"></i> Rapor Tahfidz
+                        <a href="rapor_santri.php" class="bg-white/10 hover:bg-white/20 text-white border border-white/15 font-semibold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                            <i data-lucide="award" class="w-4 h-4 text-amber-300"></i> Lihat Rapor
                         </a>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
 
-        <!-- KARTU STATISTIK (KPI) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- BENTO METRIK CARDS (COLOR-CODED & INTERACTIVE) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-7">
             <?php if (in_array($role, ['operator', 'pimpinan'])): ?>
-                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Pengajar</p>
-                        <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $total_ustadz ?></p>
-                        <p class="text-xs text-slate-400 mt-1">Ustadz / Ustadzah</p>
-                    </div>
-                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
-                        <i data-lucide="user-check" class="w-6 h-6"></i>
-                    </div>
+            <a href="kelola-ustadz.php" class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between group">
+                <div>
+                    <span class="text-xs font-semibold text-slate-500">Total Asatidz</span>
+                    <p class="text-3xl font-extrabold text-slate-900 font-mono mt-1.5 group-hover:text-indigo-600 transition"><?= $total_ustadz ?></p>
+                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 mt-2">
+                        Kelola Pengajar <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
+                    </span>
                 </div>
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+            </a>
             <?php endif; ?>
 
             <?php if (in_array($role, ['operator', 'ustadz', 'pimpinan'])): ?>
-                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Santri</p>
-                        <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $total_santri ?></p>
-                        <p class="text-xs text-emerald-600 font-medium mt-1"><?= $stat['santri_aktif'] ?? 0 ?> aktif setor bulan ini</p>
+            <a href="kelola_santri.php" class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between group">
+                <div>
+                    <span class="text-xs font-semibold text-slate-500">Total Santri</span>
+                    <div class="flex items-baseline gap-2 mt-1.5">
+                        <p class="text-3xl font-extrabold text-slate-900 font-mono group-hover:text-emerald-600 transition"><?= $total_santri ?></p>
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"><?= $stat['santri_aktif'] ?? 0 ?> aktif</span>
                     </div>
-                    <div class="w-12 h-12 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center">
-                        <i data-lucide="graduation-cap" class="w-6 h-6"></i>
-                    </div>
+                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 mt-2">
+                        Terdaftar dalam halaqah
+                    </span>
                 </div>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+                </div>
+            </a>
             <?php endif; ?>
 
-            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between group">
                 <div>
-                    <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Ziyadah Bulan Ini</p>
-                    <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $stat['total_ayat'] ?? 0 ?></p>
-                    <p class="text-xs text-slate-400 mt-1">Total ayat baru dihafal</p>
+                    <span class="text-xs font-semibold text-slate-500">Capaian Ziyadah (<?= date('M') ?>)</span>
+                    <div class="flex items-baseline gap-1.5 mt-1.5">
+                        <p class="text-3xl font-extrabold text-slate-900 font-mono"><?= $stat['total_ayat'] ?? 0 ?></p>
+                        <span class="text-xs font-semibold text-emerald-600">Ayat</span>
+                    </div>
+                    <span class="inline-flex items-center gap-1 text-[11px] text-slate-400 mt-2">
+                        Akumulasi hafalan baru
+                    </span>
                 </div>
-                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                <div class="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 text-teal-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <i data-lucide="book-plus" class="w-6 h-6"></i>
                 </div>
             </div>
 
-            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between group">
                 <div>
-                    <p class="text-xs font-bold text-blue-600 uppercase tracking-wider">Muraja'ah Bulan Ini</p>
-                    <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $stat['total_murajaah'] ?? 0 ?></p>
-                    <p class="text-xs text-slate-400 mt-1">Sesi pengulangan hafalan</p>
+                    <span class="text-xs font-semibold text-slate-500">Sesi Muraja'ah</span>
+                    <div class="flex items-baseline gap-1.5 mt-1.5">
+                        <p class="text-3xl font-extrabold text-slate-900 font-mono"><?= $stat['total_murajaah'] ?? 0 ?></p>
+                        <span class="text-xs font-semibold text-sky-600">Sesi</span>
+                    </div>
+                    <span class="inline-flex items-center gap-1 text-[11px] text-slate-400 mt-2">
+                        Pengulangan hafalan bulan ini
+                    </span>
                 </div>
-                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                <div class="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <i data-lucide="refresh-cw" class="w-6 h-6"></i>
                 </div>
             </div>
 
             <?php if (!in_array($role, ['operator', 'pimpinan'])): ?>
-            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-start justify-between group">
                 <div>
-                    <p class="text-xs font-bold text-purple-600 uppercase tracking-wider">Ujian Tasmi'</p>
-                    <p class="text-3xl font-extrabold text-slate-900 mt-1"><?= $stat['total_tasmi'] ?? 0 ?></p>
-                    <p class="text-xs text-slate-400 mt-1">Sesi ujian bulan ini</p>
+                    <span class="text-xs font-semibold text-slate-500">Ujian Tasmi'</span>
+                    <div class="flex items-baseline gap-1.5 mt-1.5">
+                        <p class="text-3xl font-extrabold text-slate-900 font-mono"><?= $stat['total_tasmi'] ?? 0 ?></p>
+                        <span class="text-xs font-semibold text-purple-600">Ujian</span>
+                    </div>
+                    <span class="inline-flex items-center gap-1 text-[11px] text-slate-400 mt-2">
+                        Sekali duduk bulan ini
+                    </span>
                 </div>
-                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                <div class="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <i data-lucide="award" class="w-6 h-6"></i>
                 </div>
             </div>
             <?php endif; ?>
         </div>
 
-        <!-- GRAFIK TREN & DISTRIBUSI PREDIKAT -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm <?= in_array($role, ['operator', 'ustadz', 'pimpinan']) ? 'lg:col-span-2' : 'lg:col-span-3' ?>">
-                <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <!-- GRAFIK & PREDIKAT -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-7">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 <?= in_array($role, ['operator', 'ustadz', 'pimpinan']) ? 'lg:col-span-2' : 'lg:col-span-3' ?>">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
                     <div>
-                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                            <i data-lucide="trending-up" class="w-5 h-5 text-emerald-600"></i>
-                            <?= $role === 'ortu' ? 'Tren Hafalan Ananda (6 Bulan Terakhir)' : 'Grafik Pertumbuhan Hafalan Surau' ?>
-                        </h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Perbandingan capaian Ziyadah (ayat) dan frekuensi Muraja'ah</p>
+                        <h2 class="text-base font-bold text-slate-900">Tren Setoran 6 Bulan Terakhir</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Perbandingan volume Ziyadah (ayat) dan sesi Muraja'ah</p>
                     </div>
-                    <div class="flex gap-4 text-xs font-medium">
-                        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-emerald-500 rounded-full"></span>Ziyadah (Ayat)</div>
-                        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-blue-500 rounded-full"></span>Muraja'ah (Kali)</div>
+                    <div class="flex gap-3 text-xs font-semibold">
+                        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>Ziyadah</div>
+                        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200"><span class="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>Muraja'ah</div>
                     </div>
                 </div>
-                <div style="height: 290px;">
+                <div style="height: 270px;">
                     <canvas id="progresChart"></canvas>
                 </div>
             </div>
 
             <?php if (in_array($role, ['operator', 'ustadz', 'pimpinan'])): ?>
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between">
                 <div>
-                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                        <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-600"></i> Kualitas Setoran
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Distribusi predikat bulan ini</p>
+                    <h2 class="text-base font-bold text-slate-900">Distribusi Kualitas Bacaan</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Proporsi predikat setoran bulan berjalan</p>
                 </div>
-                <div style="height: 190px;" class="my-4 flex items-center justify-center">
+                <div style="height: 175px;" class="my-4 flex items-center justify-center">
                     <canvas id="predikatChart"></canvas>
                 </div>
-                <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                    <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-100">
-                        <span class="block font-bold text-emerald-700 text-sm"><?= $predikat_data['A'] ?></span>
-                        <span class="text-[11px] text-emerald-600">Predikat A</span>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+                        <span class="block font-mono font-extrabold text-emerald-700 text-base"><?= $predikat_data['A'] ?></span>
+                        <span class="text-[11px] font-semibold text-emerald-600">Mumtaz (A)</span>
                     </div>
-                    <div class="p-2 rounded-xl bg-amber-50 border border-amber-100">
-                        <span class="block font-bold text-amber-700 text-sm"><?= $predikat_data['B'] ?></span>
-                        <span class="text-[11px] text-amber-600">Predikat B</span>
+                    <div class="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80">
+                        <span class="block font-mono font-extrabold text-amber-700 text-base"><?= $predikat_data['B'] ?></span>
+                        <span class="text-[11px] font-semibold text-amber-600">Jayyid (B)</span>
                     </div>
-                    <div class="p-2 rounded-xl bg-rose-50 border border-rose-100">
-                        <span class="block font-bold text-rose-700 text-sm"><?= $predikat_data['C'] ?></span>
-                        <span class="text-[11px] text-rose-600">Predikat C</span>
+                    <div class="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200/80">
+                        <span class="block font-mono font-extrabold text-rose-700 text-base"><?= $predikat_data['C'] ?></span>
+                        <span class="text-[11px] font-semibold text-rose-600">Ulang (C)</span>
                     </div>
                 </div>
             </div>
@@ -298,69 +322,78 @@ include __DIR__ . '/../../includes/header.php';
         <!-- WIDGET TARGET & TIMELINE AKTIVITAS -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            <!-- Capaian Target -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+            <!-- Realisasi Target -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between">
                 <div>
-                    <div class="flex items-start justify-between mb-4">
-                        <div>
-                            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <i data-lucide="target" class="w-5 h-5 text-indigo-600"></i>
-                                <?= $target_widget['label'] ?>
-                            </h3>
-                            <p class="text-xs text-slate-500 mt-1">
-                                <?= $role === 'ortu' ? 'Dihitung dari target harian ananda × 20 hari efektif' : 'Proporsi santri yang memenuhi target bulanan' ?>
-                            </p>
+                    <div class="flex items-start justify-between mb-5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                                <i data-lucide="target" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-slate-900"><?= $target_widget['label'] ?></h3>
+                                <p class="text-xs text-slate-500">
+                                    <?= $role === 'ortu' ? 'Kalkulasi berdasarkan target harian × 20 hari efektif' : 'Proporsi santri yang memenuhi kuota ayat bulanan' ?>
+                                </p>
+                            </div>
                         </div>
-                        <span class="text-2xl font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl"><?= $target_widget['persentase'] ?>%</span>
+                        <span class="text-2xl font-mono font-extrabold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100"><?= $target_widget['persentase'] ?>%</span>
                     </div>
 
-                    <div class="w-full bg-slate-100 rounded-full h-3.5 mb-3 overflow-hidden border border-slate-200">
-                        <div class="bg-gradient-to-r from-indigo-500 to-teal-500 h-full rounded-full transition-all duration-500" style="width: <?= $target_widget['persentase'] ?>%"></div>
+                    <div class="w-full bg-slate-100 rounded-full h-3.5 mb-3 overflow-hidden p-0.5 border border-slate-200/80">
+                        <div class="bg-gradient-to-r from-indigo-600 via-violet-600 to-emerald-500 h-full rounded-full transition-all duration-700" style="width: <?= $target_widget['persentase'] ?>%"></div>
                     </div>
 
-                    <div class="flex justify-between text-xs font-medium text-slate-500">
-                        <span>Realisasi: <b class="text-slate-800"><?= $target_widget['tercapai'] ?> <?= $role === 'ortu' ? 'Ayat' : 'Santri' ?></b></span>
-                        <span>Target: <b class="text-slate-800"><?= $target_widget['total'] ?> <?= $role === 'ortu' ? 'Ayat' : 'Santri' ?></b></span>
+                    <div class="flex justify-between text-xs font-medium text-slate-500 mt-3">
+                        <span>Tercapai: <strong class="font-mono text-slate-900"><?= $target_widget['tercapai'] ?></strong> <?= $role === 'ortu' ? 'ayat' : 'santri' ?></span>
+                        <span>Target: <strong class="font-mono text-slate-900"><?= $target_widget['total'] ?></strong> <?= $role === 'ortu' ? 'ayat' : 'santri' ?></span>
                     </div>
                 </div>
 
                 <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span class="text-slate-400">Ingin melihat rincian lebih mendalam?</span>
-                    <a href="<?= $role === 'ortu' ? 'monitoring_anak.php' : 'progres_santri.php' ?>" class="text-indigo-600 hover:underline font-bold flex items-center gap-1">
-                        Buka Analisis Progres <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    <span class="text-slate-400">Evaluasi analitik terperinci</span>
+                    <a href="<?= $role === 'ortu' ? 'monitoring_anak.php' : 'progres_santri.php' ?>" class="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
+                        Buka Analitik Progres <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                     </a>
                 </div>
             </div>
 
-            <!-- Aktivitas Terbaru -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2 mb-4">
-                    <i data-lucide="activity" class="w-5 h-5 text-indigo-600"></i> Aktivitas Setoran Terbaru
-                </h3>
+            <!-- Log Aktivitas Terbaru -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900">Aktivitas Setoran Terakhir</h3>
+                    </div>
+                    <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">Live Feed</span>
+                </div>
 
                 <?php if (empty($aktivitas_list)): ?>
                     <div class="text-center py-10 text-slate-400 text-xs">
-                        <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
-                        Belum ada aktivitas setoran yang tercatat.
+                        Belum ada data setoran yang tercatat.
                     </div>
                 <?php else: ?>
-                    <div class="space-y-3">
+                    <div class="divide-y divide-slate-100">
                         <?php foreach ($aktivitas_list as $akt): 
-                            $badge_jenis = $akt['jenis'] == 'ziyadah' ? 'bg-emerald-100 text-emerald-700' : ($akt['jenis'] == 'murajaah' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700');
+                            $j_color = $akt['jenis'] === 'ziyadah' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ($akt['jenis'] === 'murajaah' ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-purple-50 text-purple-700 border-purple-200');
                         ?>
-                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <div class="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/80 px-2 rounded-xl transition">
                                 <div class="flex items-center gap-3 min-w-0">
-                                    <span class="px-2 py-1 rounded-lg text-[10px] font-bold uppercase <?= $badge_jenis ?>"><?= $akt['jenis'] ?></span>
+                                    <span class="w-20 text-center py-1 rounded-lg text-[10px] font-mono font-bold uppercase border shrink-0 <?= $j_color ?>">
+                                        <?= htmlspecialchars($akt['jenis']) ?>
+                                    </span>
                                     <div class="truncate">
-                                        <p class="text-xs font-bold text-slate-800 truncate">
-                                            <?= $role === 'ortu' ? htmlspecialchars($akt['surat']) : htmlspecialchars($akt['nama_santri']) . ' • ' . htmlspecialchars($akt['surat']) ?>
+                                        <p class="text-xs font-bold text-slate-900 truncate">
+                                            <?= $role === 'ortu' ? 'QS. ' . htmlspecialchars($akt['surat']) : htmlspecialchars($akt['nama_santri']) . ' — QS. ' . htmlspecialchars($akt['surat']) ?>
                                         </p>
-                                        <p class="text-[11px] text-slate-400">
-                                            Ayat <?= $akt['ayat_awal'] ?>-<?= $akt['ayat_akhir'] ?> • <?= date('d M H:i', strtotime($akt['created_at'])) ?>
+                                        <p class="text-[11px] text-slate-400 font-mono">
+                                            Ayat <?= $akt['ayat_awal'] ?>–<?= $akt['ayat_akhir'] ?> • <?= date('d/m H:i', strtotime($akt['created_at'])) ?>
                                         </p>
                                     </div>
                                 </div>
-                                <span class="w-7 h-7 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 <?= $akt['predikat'] == 'A' ? 'bg-emerald-500 text-white' : ($akt['predikat'] == 'B' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white') ?>">
+                                <span class="px-2.5 py-1 rounded-lg font-mono font-bold text-xs border <?= $akt['predikat'] == 'A' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ($akt['predikat'] == 'B' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200') ?>">
                                     <?= $akt['predikat'] ?>
                                 </span>
                             </div>
@@ -374,12 +407,12 @@ include __DIR__ . '/../../includes/header.php';
     </div>
 
     <?php
-$page_data = [
-    'chart_labels' => $chart_labels,
-    'chart_ziyadah' => $chart_ziyadah,
-    'chart_murajaah' => $chart_murajaah,
-    'predikat_data' => in_array($role, ['operator', 'ustadz', 'pimpinan']) ? $predikat_data : null,
-];
-include __DIR__ . '/../../includes/page_data.php';
-?>
+    $page_data = [
+        'chart_labels' => $chart_labels,
+        'chart_ziyadah' => $chart_ziyadah,
+        'chart_murajaah' => $chart_murajaah,
+        'predikat_data' => in_array($role, ['operator', 'ustadz', 'pimpinan']) ? $predikat_data : null,
+    ];
+    include __DIR__ . '/../../includes/page_data.php';
+    ?>
 <?php include __DIR__ . '/../../includes/footer.php'; ?>

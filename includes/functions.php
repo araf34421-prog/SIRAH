@@ -181,19 +181,20 @@ if (!function_exists('renderBadgeFilterBinaan')) {
         if ($is_semua) {
             return '
             <a href="' . htmlspecialchars($url_toggle) . '" title="Kembali ke santri lokal binaan saya"
-               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition shadow-sm">
-                <i data-lucide="users" class="w-3.5 h-3.5"></i>
-                <span>Mode Badal: Semua Santri</span>
-                <span class="underline ml-1 font-bold">Reset ke Binaan</span>
+               class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                <span>Mode Badal (Semua Santri)</span>
+                <span class="text-amber-400">|</span>
+                <span class="underline font-semibold">Reset</span>
             </a>';
         }
         return '
             <a href="' . htmlspecialchars($url_toggle) . '" title="Klik jika Anda sedang menggantikan ustadz/ah lain (Badal)"
-               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition shadow-sm">
-                <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
-                <span>Filter: Santri Binaan Saya</span>
-                <span class="text-slate-400">|</span>
-                <span class="underline text-slate-600 hover:text-slate-900">Tampilkan Semua</span>
+               class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                <span>Santri Binaan</span>
+                <span class="text-slate-300">|</span>
+                <span class="text-slate-500 hover:text-slate-900">Mode Badal</span>
             </a>';
     }
 }

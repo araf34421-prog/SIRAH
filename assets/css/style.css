@@ -1,47 +1,182 @@
 /* ==========================================================================
-   SIRAH CUSTOM THEME: "MUSHAF & VERDANT SANCTUARY"
+   SIRAH — MODERN INTERACTIVE DESIGN SYSTEM (v3.0)
    ========================================================================== */
 
 :root {
-    --bg-mushaf: #FAF7F2;
-    --bg-card: #FFFFFF;
-    --border-warm: #E8E2D5;
-    --emerald-deep: #072119;
-    --emerald-mid: #0F513E;
-    --gold-accent: #C88A2E;
-    --gold-soft: #F7EFE0;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    --sidebar-expanded: 16.25rem;
+    /* 260px */
+    --sidebar-collapsed: 4.5rem;
+    /* 72px Mini-Rail */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color-scheme: light;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-/* Latar belakang kertas mushaf hangat dengan ornamen geometris super halus */
 body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    background-color: var(--bg-mushaf) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #F1F5F9 !important;
     background-image:
-        radial-gradient(circle at 100% 0%, rgba(200, 138, 46, 0.06) 0%, transparent 35%),
-        radial-gradient(circle at 0% 100%, rgba(15, 81, 62, 0.05) 0%, transparent 40%),
-        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg stroke='%23c88a2e' stroke-width='0.45' stroke-opacity='0.12'%3E%3Cpath d='M30 5l6.5 16.5L53 28l-16.5 6.5L30 51l-6.5-16.5L7 28l16.5-6.5z'/%3E%3Ccircle cx='30' cy='28' r='5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-    color: #1C2421;
+        radial-gradient(at 15% 0%, rgba(79, 70, 229, 0.07) 0px, transparent 45%),
+        radial-gradient(at 85% 0%, rgba(16, 185, 129, 0.06) 0px, transparent 40%),
+        radial-gradient(at 50% 100%, rgba(14, 165, 233, 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
+    color: #0F172A;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.011em;
 }
 
-/* Judul Halaman bergaya Editorial / Kitab Modern */
-h1 {
-    font-family: 'Fraunces', Georgia, serif;
-    letter-spacing: -0.02em;
+h1,
+h2,
+h3,
+h4 {
+    letter-spacing: -0.025em;
 }
 
-/* Memperindah seluruh Card Putih di seluruh halaman secara otomatis */
-.bg-white.border.border-slate-200,
-.bg-white.border.border-slate-200\/90 {
-    border-color: var(--border-warm) !important;
-    box-shadow: 0 10px 30px -10px rgba(7, 33, 25, 0.05), 0 2px 6px -1px rgba(200, 138, 46, 0.04) !important;
-    position: relative;
+td,
+.text-2xl,
+.text-3xl,
+input[type="number"] {
+    font-variant-numeric: tabular-nums;
 }
 
-/* Pola Geometris Islami untuk Sidebar & Hero Banner */
-.islamic-pattern {
-    background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23eab308' stroke-width='0.6' stroke-opacity='0.12'%3E%3Crect x='18' y='18' width='44' height='44' transform='rotate(45 40 40)'/%3E%3Crect x='18' y='18' width='44' height='44'/%3E%3Ccircle cx='40' cy='40' r='10'/%3E%3C/g%3E%3C/svg%3E");
+/* ==========================================================================
+   COLLAPSIBLE MINI-RAIL SIDEBAR & TOPBAR ENGINE
+   ========================================================================== */
+.sirah-sidebar {
+    width: var(--sidebar-expanded);
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ml-64,
+.sirah-topbar {
+    margin-left: var(--sidebar-expanded) !important;
+    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.sidebar-collapsed .sirah-sidebar {
+    width: var(--sidebar-collapsed);
+}
+
+html.sidebar-collapsed .ml-64,
+html.sidebar-collapsed .sirah-topbar {
+    margin-left: var(--sidebar-collapsed) !important;
+}
+
+html.sidebar-collapsed .sidebar-hide-on-collapse {
+    display: none !important;
+}
+
+html.sidebar-collapsed .sidebar-cat-divider {
+    display: block !important;
+}
+
+html.sidebar-collapsed .sidebar-link {
+    justify-content: center !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+}
+
+html.sidebar-collapsed .sidebar-user-card {
+    justify-content: center !important;
+    padding: 0.375rem !important;
+}
+
+html.sidebar-collapsed .sidebar-footer-actions {
+    grid-template-columns: 1fr !important;
+}
+
+html.sidebar-collapsed .sidebar-brand {
+    display: none !important;
+}
+
+html.sidebar-collapsed #btnToggleSidebar {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ==========================================================================
+   MODERN CARD ELEVATION & MICRO-INTERACTIONS
+   ========================================================================== */
+.rounded-3xl,
+.rounded-2xl {
+    border-radius: 0.875rem !important;
+    /* 14px modern radius */
+}
+
+.rounded-xl {
+    border-radius: 0.625rem !important;
+    /* 10px radius */
+}
+
+.rounded-lg {
+    border-radius: 0.5rem !important;
+}
+
+.shadow-2xl,
+.shadow-xl,
+.shadow-lg,
+.shadow-md,
+.shadow-sm {
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.04) !important;
+}
+
+.bg-white.border {
+    border-color: rgba(226, 232, 240, 0.9) !important;
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efek Hover Lift untuk Kartu Metrik di Grid */
+.grid>.bg-white.border:hover {
+    border-color: #CBD5E1 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.08), 0 4px 8px -4px rgba(79, 70, 229, 0.05) !important;
+}
+
+/* Tabel Interaktif */
+table thead th {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    color: #475569 !important;
+    background: linear-gradient(to bottom, #F8FAFC, #F1F5F9) !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+}
+
+table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+table tbody tr:hover {
+    background-color: #EEF2FF !important;
+}
+
+/* Form Controls */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+    border-radius: 0.625rem !important;
+    border: 1px solid #CBD5E1 !important;
+    background-color: #FFFFFF !important;
+    font-size: 0.8125rem !important;
+    transition: all 0.15s ease !important;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+    border-color: #94A3B8 !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #4F46E5 !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
+    outline: none !important;
 }
 
 /* Scrollbar Sidebar */
@@ -54,76 +189,76 @@ h1 {
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: rgba(200, 138, 46, 0.25);
-    border-radius: 9999px;
+    background: #1E293B;
+    border-radius: 4px;
 }
 
 .sidebar-scroll:hover::-webkit-scrollbar-thumb {
-    background: rgba(200, 138, 46, 0.5);
+    background: #475569;
 }
 
 /* ==========================================================================
-   KOMPONEN INTERAKTIF HALAMAN (RADIO, TABS, TOGGLES)
+   INTERACTIVE PILLS (RADIO KEHADIRAN & PREDIKAT)
    ========================================================================== */
-
-/* Page styles: input_kehadiran */
 .status-radio input[type="radio"] {
     display: none;
 }
 
 .status-radio input[value="Hadir"]:checked+div {
-    background-color: #0f513e;
-    color: white;
-    border-color: #0f513e;
-    box-shadow: 0 4px 10px rgba(15, 81, 62, 0.25);
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: #FFFFFF;
+    border-color: #059669;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
 }
 
 .status-radio input[value="Sakit"]:checked+div {
-    background-color: #0284c7;
-    color: white;
-    border-color: #0284c7;
+    background: linear-gradient(135deg, #0EA5E9, #0284C7);
+    color: #FFFFFF;
+    border-color: #0284C7;
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
 }
 
 .status-radio input[value="Izin"]:checked+div {
-    background-color: #d97706;
-    color: white;
-    border-color: #d97706;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #FFFFFF;
+    border-color: #D97706;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
 }
 
 .status-radio input[value="Alfa"]:checked+div {
-    background-color: #e11d48;
-    color: white;
-    border-color: #e11d48;
+    background: linear-gradient(135deg, #F43F5E, #E11D48);
+    color: #FFFFFF;
+    border-color: #E11D48;
+    box-shadow: 0 2px 6px rgba(244, 63, 94, 0.35);
 }
 
-.status-radio div:hover {
-    filter: brightness(0.95);
-}
-
-/* Page styles: input_ziyadah, input_murajaah, input_tasmi */
+/* Predikat Hafalan Cards */
 .predikat-radio input[type="radio"] {
     display: none;
 }
 
 .predikat-radio input[value="A"]:checked+div {
-    border-color: #0f513e;
-    background-color: #ecfdf5;
-    color: #064e3b;
-    box-shadow: 0 0 0 3px rgba(15, 81, 62, 0.14);
+    border-color: #10B981;
+    background: linear-gradient(to bottom right, #ECFDF5, #D1FAE5);
+    color: #065F46;
+    box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.2), inset 0 0 0 1px #10B981 !important;
+    transform: translateY(-1px);
 }
 
 .predikat-radio input[value="B"]:checked+div {
-    border-color: #d97706;
-    background-color: #fffbeb;
-    color: #92400e;
-    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.14);
+    border-color: #F59E0B;
+    background: linear-gradient(to bottom right, #FFFBEB, #FEF3C7);
+    color: #92400E;
+    box-shadow: 0 4px 12px -2px rgba(245, 158, 11, 0.2), inset 0 0 0 1px #F59E0B !important;
+    transform: translateY(-1px);
 }
 
 .predikat-radio input[value="C"]:checked+div {
-    border-color: #e11d48;
-    background-color: #fff1f2;
-    color: #9f1239;
-    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.14);
+    border-color: #F43F5E;
+    background: linear-gradient(to bottom right, #FFF1F2, #FFE4E6);
+    color: #9F1239;
+    box-shadow: 0 4px 12px -2px rgba(244, 63, 94, 0.2), inset 0 0 0 1px #F43F5E !important;
+    transform: translateY(-1px);
 }
 
 .predikat-radio input[type="radio"]:checked+div .check-badge {
@@ -131,69 +266,48 @@ h1 {
     transform: scale(1);
 }
 
-/* Page styles: kelola_kelas */
+/* Segmented Control (Kelola Kelas) */
 .tab-btn {
-    color: #57534e;
+    color: #64748B;
     background: transparent;
     border: 1px solid transparent;
 }
 
 .tab-btn:hover {
-    color: #072119;
-    background: rgba(255, 255, 255, 0.7);
+    color: #0F172A;
 }
 
 .tab-btn.active {
-    color: #072119;
-    background: #ffffff;
-    border-color: #e8e2d5;
-    box-shadow: 0 2px 6px rgba(7, 33, 25, 0.06);
+    color: #4F46E5;
+    background: #FFFFFF;
+    border-color: #E2E8F0;
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.06) !important;
 }
 
 .tab-btn.active .tab-icon {
-    color: #c88a2e;
+    color: #4F46E5;
 }
 
 .tab-btn.active .tab-count {
-    background-color: #faefd9;
-    color: #92400e;
+    background-color: #EEF2FF;
+    color: #4F46E5;
 }
 
-/* Page styles: kelola_santri & kelola-ustadz */
+/* Gender Radio */
 .gender-radio input[type="radio"] {
     display: none;
 }
 
-.gender-radio input[value="L"]:checked+div {
-    border-color: #0f513e;
-    background-color: #ecfdf5;
-    color: #064e3b;
-}
-
+.gender-radio input[value="L"]:checked+div,
 .gender-radio input[value="P"]:checked+div {
-    border-color: #c88a2e;
-    background-color: #fdfaf3;
-    color: #92400e;
-}
-
-/* Page styles: login */
-.login-page {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-.login-page .bg-pattern {
-    background-image: radial-gradient(rgba(234, 179, 8, 0.16) 1px, transparent 1px);
-    background-size: 24px 24px;
-}
-
-.login-page .glass-form {
-    background: rgba(251, 249, 245, 0.94);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    border-color: #4F46E5;
+    background-color: #EEF2FF;
+    color: #312E81;
+    box-shadow: inset 0 0 0 1px #4F46E5 !important;
 }
 
 /* ==========================================================================
-   CETAK RAPOR & REKAP BULANAN (TETAP PRESISI UNTUK KERTAS A4)
+   PRINT STYLES (TETAP MURNI UNTUK KERTAS A4)
    ========================================================================== */
 .kertas-rapor {
     font-family: 'Times New Roman', Times, serif;
@@ -281,13 +395,16 @@ h1 {
     .no-print,
     aside,
     nav,
-    .sidebar,
+    header.sirah-topbar,
+    #sidebarRailTooltip,
+    #sirahCommandModal,
     script,
     button {
         display: none !important;
     }
 
-    .ml-64 {
+    .ml-64,
+    html.sidebar-collapsed .ml-64 {
         margin-left: 0 !important;
         padding: 0 !important;
     }

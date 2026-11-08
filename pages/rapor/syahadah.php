@@ -4,62 +4,228 @@ startAppSession();
 require __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/init_rbac.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['operator', 'ustadz', 'pimpinan'], true)) {
-    header('Location: login.php');
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
     exit;
 }
 
-$id_santri = filter_input(INPUT_GET, 'id_santri', FILTER_VALIDATE_INT) ?: 0;
-$id_tasmi = filter_input(INPUT_GET, 'id_tasmi', FILTER_VALIDATE_INT) ?: 0;
-$role = $_SESSION['role'];
+$role    = $_SESSION['role'];
 $id_user = (int) $_SESSION['user_id'];
-$where_binaan = getFilterSantriBinaanSQL($conn, $id_user, $role, 's');
-$and_binaan = $where_binaan !== '' ? ' AND ' . preg_replace('/^\s*WHERE\s+/i', '', $where_binaan) : '';
 
-$query = "SELECT s.nama, s.nama_ortu, s.nis, h.tanggal, h.juz, h.pojok, h.surat, h.predikat, h.catatan, u.nama_lengkap AS nama_pengajar
-          FROM hafalan h
-          JOIN santri s ON s.id = h.id_santri
-          LEFT JOIN users u ON u.id = h.id_ustadz
-          WHERE h.id = ? AND h.id_santri = ? AND h.jenis = 'tasmi' $and_binaan
-          LIMIT 1";
-$stmt = mysqli_prepare($conn, $query);
-mysqli_stmt_bind_param($stmt, 'ii', $id_tasmi, $id_santri);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
-$syahadah = $result ? mysqli_fetch_assoc($result) : null;
-mysqli_stmt_close($stmt);
-
-if (!$syahadah || !in_array($syahadah['predikat'], ['A', 'B'], true)) {
-    http_response_code(404);
-    exit('Data syahadah tidak ditemukan.');
+if ($role === 'ortu') {
+    $where_santri = "WHERE s.id_user_ortu = $id_user";
+} else {
+    $where_santri = getFilterSantriBinaanSQL($conn, $id_user, $role, 's');
 }
 
-$page_title = "Syahadah Tasmi' - " . htmlspecialchars($syahadah['nama'], ENT_QUOTES, 'UTF-8');
+$q_santri = "SELECT s.*, h.nama_halaqah, h.nama_pengajar 
+             FROM santri s 
+             LEFT JOIN halaqah h ON s.id_halaqah = h.id 
+             $where_santri 
+             ORDER BY s.nama ASC";
+$santri_list = mysqli_fetch_all(mysqli_query($conn, $q_santri), MYSQLI_ASSOC);
+
+$id_santri_pilih = isset($_GET['id_santri']) ? (int) $_GET['id_santri'] : ($santri_list[0]['id'] ?? 0);
+$id_tasmi_pilih  = isset($_GET['id_tasmi']) ? (int) $_GET['id_tasmi'] : 0;
+
+$santri_aktif = null;
+foreach ($santri_list as $s) {
+    if ((int)$s['id'] === $id_santri_pilih) {
+        $santri_aktif = $s;
+        break;
+    }
+}
+
+$tasmi_list = [];
+$tasmi_aktif = null;
+
+if ($santri_aktif) {
+    $id_s = (int) $santri_aktif['id'];
+    $q_tasmi = "SELECT t.*, u.nama_lengkap as nama_penguji 
+                FROM hafalan t 
+                LEFT JOIN users u ON t.id_ustadz = u.id 
+                WHERE t.id_santri = $id_s AND t.jenis = 'tasmi' 
+                ORDER BY t.tanggal DESC, t.id DESC";
+    $res_tasmi = mysqli_query($conn, $q_tasmi);
+    if ($res_tasmi) {
+        $tasmi_list = mysqli_fetch_all($res_tasmi, MYSQLI_ASSOC);
+    }
+
+    if (!empty($tasmi_list)) {
+        $tasmi_aktif = $tasmi_list[0];
+        if ($id_tasmi_pilih > 0) {
+            foreach ($tasmi_list as $tm) {
+                if ((int)$tm['id'] === $id_tasmi_pilih) {
+                    $tasmi_aktif = $tm;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+$juz_syahadah    = $tasmi_aktif['juz'] ?? 30;
+$materi_syahadah = $tasmi_aktif['surat'] ?? "Juz 30 (An-Naba' s/d An-Nas)";
+$predikat_kode   = $tasmi_aktif['predikat'] ?? 'A';
+$predikat_teks   = ($predikat_kode === 'A') ? 'Mumtaz (Sangat Memuaskan)' : (($predikat_kode === 'B') ? 'Jayyid Jiddan (Baik Sekali)' : 'Maqbul (Lulus)');
+$tgl_ujian       = !empty($tasmi_aktif['tanggal']) ? date('d F Y', strtotime($tasmi_aktif['tanggal'])) : date('d F Y');
+$nama_penguji    = $tasmi_aktif['nama_penguji'] ?? ($santri_aktif['nama_pengajar'] ?? ($_SESSION['nama_lengkap'] ?? 'Ustadz Pembimbing'));
+$kepala_surau    = 'Ust. Aipda Syaiful Hendra';
+$no_sertifikat   = sprintf("SYH/%03d/STQ-MF/J%s/%s", ($tasmi_aktif['id'] ?? 1), $juz_syahadah, date('Y'));
+
+$page_title = "Syahadah Tasmi' — Surau Tahfizh Firdaus";
 include __DIR__ . '/../../includes/header.php';
 ?>
-<body class="min-h-screen bg-slate-100 p-6 text-slate-800">
-    <main class="syahadah mx-auto max-w-5xl rounded-3xl border-8 border-double border-amber-500 bg-white p-10 text-center shadow-xl md:p-16">
-        <p class="text-sm font-bold uppercase tracking-[0.35em] text-amber-700">Surau Tahfizh Firdaus</p>
-        <h1 class="mt-5 text-4xl font-extrabold tracking-wide text-slate-900">SYAHADAH TASMI'</h1>
-        <p class="mt-3 text-slate-500">Diberikan dengan penuh penghargaan kepada</p>
-        <h2 class="mt-6 text-4xl font-bold text-indigo-900"><?= htmlspecialchars($syahadah['nama'], ENT_QUOTES, 'UTF-8') ?></h2>
-        <p class="mt-2 text-sm text-slate-500">NIS: <?= htmlspecialchars($syahadah['nis'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-        <p class="mx-auto mt-8 max-w-3xl leading-8 text-slate-700">
-            Atas keberhasilan menyelesaikan ujian tasmi' hafalan Al-Qur'an
-            <strong><?= htmlspecialchars($syahadah['surat'] ?: ('Juz ' . ($syahadah['juz'] ?? '-')), ENT_QUOTES, 'UTF-8') ?></strong>
-            dengan predikat <strong><?= htmlspecialchars($syahadah['predikat'], ENT_QUOTES, 'UTF-8') ?></strong>.
-        </p>
-        <?php if (!empty($syahadah['pojok'])): ?>
-            <p class="mt-2 text-slate-600">Capaian: <?= htmlspecialchars($syahadah['pojok'], ENT_QUOTES, 'UTF-8') ?> pojok</p>
-        <?php endif; ?>
-        <p class="mt-8 text-sm text-slate-500">Semoga Allah memberkahi hafalan dan mengamalkannya.</p>
-        <div class="mt-14 flex justify-between gap-10 text-sm text-slate-600">
-            <div class="flex-1"><p><?= date('d F Y', strtotime($syahadah['tanggal'])) ?></p><p class="mt-16 border-t border-slate-400 pt-2"><?= htmlspecialchars($syahadah['nama_pengajar'] ?? 'Penguji', ENT_QUOTES, 'UTF-8') ?></p><p>Penguji</p></div>
-            <div class="flex-1"><p>Surau Tahfizh Firdaus</p><p class="mt-16 border-t border-slate-400 pt-2"><?= htmlspecialchars($syahadah['nama_ortu'] ?? $syahadah['nama'], ENT_QUOTES, 'UTF-8') ?></p><p>Wali Santri</p></div>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+    .font-serif-elegant { font-family: 'Cormorant Garamond', Georgia, serif; }
+    @media print {
+        @page { size: A4 landscape; margin: 0.8cm; }
+        body { background: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .no-print, aside, nav { display: none !important; }
+        .ml-64 { margin-left: 0 !important; padding: 0 !important; }
+        .sertifikat-card { box-shadow: none !important; max-width: 100% !important; }
+    }
+</style>
+
+<body class="bg-slate-50 font-sans text-slate-800">
+
+    <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
+
+    <div class="ml-64 p-8">
+        
+        <!-- BAR KONTROL (TIDAK TERCETAK) -->
+        <div class="no-print bg-white border border-slate-200 rounded-2xl p-5 mb-8">
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900">Sertifikat Syahadah Tasmi'</h1>
+                    <p class="text-xs text-slate-500">Desain sertifikat minimalis modern (Siap cetak ukuran A4 Landscape).</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="input_tasmi.php" class="px-3.5 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition">
+                        Kembali
+                    </a>
+                    <button type="button" onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-xl text-xs flex items-center gap-2 transition">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Cetak Sertifikat
+                    </button>
+                </div>
+            </div>
+
+            <form method="GET" action="cetak_syahadah.php" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Santri</label>
+                    <select name="id_santri" onchange="this.form.submit()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none">
+                        <?php foreach ($santri_list as $s): ?>
+                            <option value="<?= $s['id'] ?>" <?= (int)$s['id'] === $id_santri_pilih ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($s['nama']) ?> (<?= htmlspecialchars($s['nis'] ?: '-') ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Riwayat Ujian Tasmi'</label>
+                    <select name="id_tasmi" onchange="this.form.submit()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none">
+                        <?php if (empty($tasmi_list)): ?>
+                            <option value="0">Mode Pratinjau</option>
+                        <?php else: ?>
+                            <?php foreach ($tasmi_list as $tm): ?>
+                                <option value="<?= $tm['id'] ?>" <?= ($tasmi_aktif && (int)$tm['id'] === (int)$tasmi_aktif['id']) ? 'selected' : '' ?>>
+                                    Juz <?= (int)$tm['juz'] ?> — <?= htmlspecialchars($tm['surat']) ?> (<?= date('d/m/Y', strtotime($tm['tanggal'])) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Nama Penguji</label>
+                    <input type="text" value="<?= htmlspecialchars($nama_penguji) ?>" oninput="document.getElementById('teksPenguji').innerText = this.value"
+                           class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none">
+                </div>
+            </form>
         </div>
-    </main>
-    <div class="no-print mx-auto mt-5 flex max-w-5xl justify-center gap-3">
-        <button onclick="window.print()" class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white">Cetak Syahadah</button>
-        <a href="input_tasmi.php" class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700">Kembali</a>
+
+        <?php if ($santri_aktif): ?>
+        <!-- KANVAS SERTIFIKAT MINIMALIS MODERN -->
+        <div class="sertifikat-card max-w-5xl mx-auto bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-sm">
+            <div class="border border-slate-300 p-8 sm:p-12 relative flex flex-col justify-between min-h-[620px]">
+                
+                <!-- Garis Aksen Atas Minimalis -->
+                <div class="w-16 h-1 bg-indigo-600 mx-auto mb-6"></div>
+
+                <!-- Header Institusi -->
+                <div class="text-center">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.3em] text-indigo-600">
+                        SURAU TAHFIZH MUSHALLA FIRDAUS
+                    </p>
+                    <p class="text-[11px] text-slate-400 mt-1">
+                        Jorong Jalikur Patanangan, Koto Tangah, Kec. Tilatang Kamang, Kab. Agam
+                    </p>
+
+                    <h2 class="font-serif-elegant text-4xl sm:text-5xl font-bold text-slate-900 mt-6 tracking-tight">
+                        Syahadah Tasmi' Al-Qur'an
+                    </h2>
+                    <p class="text-[11px] font-mono text-slate-400 mt-1">Nomor: <?= htmlspecialchars($no_sertifikat) ?></p>
+                </div>
+
+                <!-- Konten Penerima -->
+                <div class="text-center my-8 max-w-2xl mx-auto">
+                    <p class="text-xs text-slate-500 uppercase tracking-widest mb-3">Diberikan Kepada</p>
+                    
+                    <h3 class="font-serif-elegant text-4xl sm:text-5xl font-bold text-indigo-600 pb-3 border-b border-slate-200 px-8 inline-block">
+                        <?= htmlspecialchars($santri_aktif['nama']) ?>
+                    </h3>
+
+                    <p class="text-xs text-slate-500 mt-3">
+                        NIS: <strong class="text-slate-700"><?= htmlspecialchars($santri_aktif['nis'] ?: '-') ?></strong>
+                        &nbsp;•&nbsp;
+                        Putra/Putri dari <strong class="text-slate-700"><?= htmlspecialchars($santri_aktif['nama_ortu'] ?: '-') ?></strong>
+                    </p>
+
+                    <p class="text-sm text-slate-600 mt-6 leading-relaxed">
+                        Atas kelulusan ujian hafalan Al-Qur'an sekali duduk (<span class="italic">Tasmi'</span>) pada materi:
+                    </p>
+
+                    <!-- Pill Materi & Predikat -->
+                    <div class="mt-4 inline-flex items-center gap-6 px-6 py-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div class="text-left">
+                            <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Materi Hafalan</span>
+                            <span class="text-sm font-bold text-slate-900">Juz <?= htmlspecialchars((string)$juz_syahadah) ?> — <?= htmlspecialchars($materi_syahadah) ?></span>
+                        </div>
+                        <div class="h-7 w-[1px] bg-slate-200"></div>
+                        <div class="text-left">
+                            <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Predikat</span>
+                            <span class="text-sm font-bold text-indigo-600"><?= htmlspecialchars($predikat_teks) ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Tanda Tangan -->
+                <div class="grid grid-cols-3 items-end pt-6 text-center text-xs">
+                    <div>
+                        <p class="text-slate-400 mb-14">Penguji Tasmi'</p>
+                        <p id="teksPenguji" class="font-bold text-slate-900 border-t border-slate-200 pt-2 inline-block px-6">
+                            <?= htmlspecialchars($nama_penguji) ?>
+                        </p>
+                    </div>
+
+                    <div class="flex justify-center">
+                        <div class="w-14 h-14 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-indigo-600">
+                            <i data-lucide="award" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-slate-400 mb-14"><?= htmlspecialchars($tgl_ujian) ?><br>Pimpinan Surau</p>
+                        <p class="font-bold text-slate-900 border-t border-slate-200 pt-2 inline-block px-6">
+                            <?= htmlspecialchars($kepala_surau) ?>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <?php endif; ?>
+
     </div>
+
 <?php include __DIR__ . '/../../includes/footer.php'; ?>
